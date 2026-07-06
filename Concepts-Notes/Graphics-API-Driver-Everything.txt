@@ -1,0 +1,1265 @@
+═══════════════════════════════════════════════════════════════════════════════
+         GRAPHICS APIs, DRIVERS, RENDER PIPELINE & PROFILING — COMPLETE REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. WHAT IS A GRAPHICS API?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+A Graphics API is a software layer between your application and the GPU hardware.
+Your code calls API functions → driver translates to GPU commands → GPU executes.
+
+APPLICATION
+    ↓  (API calls)
+GRAPHICS API  (OpenGL / Vulkan / DirectX / Metal)
+    ↓  (driver translates)
+GRAPHICS DRIVER  (NVIDIA / AMD / Intel)
+    ↓  (hardware commands)
+GPU HARDWARE
+
+WHY DIFFERENT APIs?
+───────────────────
+OpenGL   — cross-platform, older, high driver overhead, simpler to use
+Vulkan   — cross-platform, explicit control, low overhead, complex
+DirectX  — Windows/Xbox only, Microsoft ecosystem
+Metal    — Apple only (macOS/iOS)
+WebGL    — browser (based on OpenGL ES)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. OPENGL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OVERVIEW
+────────
+- Released: 1992 by Silicon Graphics
+- Cross-platform: Windows, Linux, macOS (deprecated on Mac since 2018)
+- State machine — global state that affects all subsequent calls
+- Driver does a lot of work (validation, optimization, state tracking)
+- Easier to learn but less control than Vulkan
+- OpenGL ES — embedded systems (mobile, WebGL)
+
+CORE OBJECTS
+────────────
+VAO  (Vertex Array Object)    — stores vertex attribute config
+VBO  (Vertex Buffer Object)   — stores vertex data on GPU
+EBO  (Element Buffer Object)  — stores index data for indexed drawing
+FBO  (Framebuffer Object)     — off-screen rendering target
+RBO  (Renderbuffer Object)    — render attachment (depth/stencil)
+Texture                       — image data on GPU
+Shader Program                — compiled vertex + fragment shaders
+UBO  (Uniform Buffer Object)  — shared uniform data block
+
+BASIC RENDER LOOP
+─────────────────
+1. glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+2. glUseProgram(shaderProgram)
+3. glBindVertexArray(VAO)
+4. glUniformMatrix4fv(...)          // upload matrices
+5. glDrawArrays / glDrawElements    // draw call
+6. SwapBuffers()                    // present to screen
+
+SHADERS (GLSL)
+──────────────
+// Vertex Shader
+#version 330 core
+layout(location = 0) in vec3 aPos;
+layout(location = 1) in vec2 aTexCoord;
+out vec2 TexCoord;
+uniform mat4 model, view, projection;
+void main() {
+    gl_Position = projection * view * model * vec4(aPos, 1.0);
+    TexCoord = aTexCoord;
+}
+
+// Fragment Shader
+#version 330 core
+in vec2 TexCoord;
+out vec4 FragColor;
+uniform sampler2D texture1;
+void main() {
+    FragColor = texture(texture1, TexCoord);
+}
+
+KEY OPENGL CONCEPTS
+────────────────────
+Binding:          must bind object before using it (state machine)
+Uniforms:         variables passed from CPU to shader
+Attributes:       per-vertex data (position, color, UV)
+Interpolation:    values passed from vertex → fragment shader are interpolated
+Depth Test:       GL_DEPTH_TEST — closer fragments pass
+Blending:         GL_BLEND — transparency
+Face Culling:     GL_CULL_FACE — don't draw back faces
+Stencil Test:     per-pixel masking
+
+OPENGL VERSIONS
+───────────────
+1.0 (1992) — fixed function pipeline
+2.0 (2004) — programmable shaders (GLSL)
+3.0 (2008) — deprecated legacy features
+3.3 (2010) — core profile, VAOs required
+4.0 (2010) — tessellation shaders
+4.3 (2012) — compute shaders
+4.6 (2017) — current final version (SPIR-V support)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. VULKAN
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OVERVIEW
+────────
+- Released: 2016 by Khronos Group (successor to OpenGL)
+- Cross-platform: Windows, Linux, Android, consoles via MoltenVK on Mac
+- Explicit API — you control EVERYTHING (memory, synchronization, queues)
+- Minimal driver overhead — no hidden state, no validation by default
+- Multithreading friendly — command buffers recorded in parallel
+- Verbose — thousands of lines for a triangle vs ~100 in OpenGL
+- Used in: AAA games, game engines (Unreal, Unity), emulators
+
+VULKAN INITIALIZATION ORDER
+────────────────────────────
+1.  VkInstance                — entry point, app info
+2.  VkDebugUtilsMessenger     — validation layer callbacks
+3.  VkSurfaceKHR              — OS window surface (via GLFW/SDL)
+4.  VkPhysicalDevice          — select GPU
+5.  VkDevice                  — logical device, queue families
+6.  VkQueue                   — graphics, compute, transfer queues
+7.  VkSwapchainKHR            — image chain for presentation
+8.  VkImageView               — view into swapchain images
+9.  VkRenderPass              — define attachments and subpasses
+10. VkFramebuffer             — bind images to render pass
+11. VkDescriptorSetLayout     — describe shader resource bindings
+12. VkPipelineLayout          — combine descriptor layouts
+13. VkPipeline                — compiled shader + fixed-function state
+14. VkCommandPool             — allocate command buffers from
+15. VkCommandBuffer           — record draw commands
+16. VkSemaphore / VkFence     — GPU/CPU synchronization
+17. VkBuffer / VkImage        — vertex, index, uniform, texture data
+18. VkDeviceMemory            — explicitly allocated GPU memory
+19. VkDescriptorPool/Set      — bind resources to shaders
+20. Render loop               — acquire → record → submit → present
+
+KEY VULKAN CONCEPTS
+────────────────────
+Command Buffers:    pre-record draw calls, submit to queue in batch
+Render Pass:        describes attachments (color, depth), load/store ops
+Subpass:            sub-unit of render pass, can chain for deferred rendering
+Pipeline:           fully compiled state — shaders + blend + depth + raster
+Descriptor Sets:    bind textures/buffers to shader binding points
+Synchronization:    explicit — semaphores (GPU-GPU), fences (GPU-CPU), barriers
+Memory Management:  explicit allocation, choose heap (VRAM vs shared)
+Validation Layers:  enable during dev for error checking (VK_LAYER_KHRONOS_validation)
+Push Constants:     small fast data pushed to shader without descriptor sets
+Multisampling:      MSAA — anti-aliasing at pipeline creation time
+
+VULKAN SYNCHRONIZATION
+──────────────────────
+VkSemaphore     — GPU-GPU sync (image available → render done → present)
+VkFence         — GPU-CPU sync (wait on CPU for GPU to finish frame)
+VkPipelineBarrier — image/buffer layout transitions, memory hazards
+VkEvent         — fine-grained GPU-GPU sync within command buffer
+
+IMAGE LAYOUTS
+─────────────
+VK_IMAGE_LAYOUT_UNDEFINED              — don't care (initial)
+VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL — writing color in render pass
+VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL — sampling in shader
+VK_IMAGE_LAYOUT_TRANSFER_SRC/DST_OPTIMAL — copy operations
+VK_IMAGE_LAYOUT_PRESENT_SRC_KHR        — present to swapchain
+
+MEMORY TYPES
+────────────
+DEVICE_LOCAL      — fastest VRAM, GPU only (vertex buffers, textures)
+HOST_VISIBLE      — CPU can write (staging buffers, uniform buffers)
+HOST_COHERENT     — no manual flush needed
+HOST_CACHED       — CPU reads fast
+LAZILY_ALLOCATED  — mobile tile memory
+
+VULKAN vs OPENGL
+────────────────
+                    OpenGL              Vulkan
+Control             Driver decides      You decide everything
+Verbosity           Low                 Very high (~1000 lines for triangle)
+CPU overhead        High (driver work)  Near zero
+Multithreading      Poor (global state) Excellent (command buffers)
+Error checking      Driver validates    You use validation layers
+Shader format       GLSL (text)         SPIR-V (binary bytecode)
+Learning curve      Moderate            Steep
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. DIRECTX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+OVERVIEW
+────────
+- Microsoft's graphics API — Windows and Xbox only
+- HLSL (High Level Shading Language) — shader language
+- Tightly integrated with Windows, best driver support on Windows
+
+VERSIONS
+────────
+DirectX 9  (2002) — still used in older/indie games
+DirectX 10 (2006) — geometry shaders, unified shader model
+DirectX 11 (2009) — tessellation, compute shaders, deferred contexts
+DirectX 12 (2015) — explicit low-level API (like Vulkan)
+DirectX 12 Ultimate — ray tracing, mesh shaders, variable rate shading
+
+DIRECTX 11 KEY OBJECTS
+───────────────────────
+ID3D11Device             — create resources
+ID3D11DeviceContext      — issue draw commands (immediate context)
+IDXGISwapChain           — swap buffers for presentation
+ID3D11RenderTargetView   — view of render target
+ID3D11DepthStencilView   — depth/stencil buffer view
+ID3D11Buffer             — vertex, index, constant buffers
+ID3D11Texture2D          — 2D texture
+ID3D11ShaderResourceView — bind texture to shader
+ID3D11VertexShader       — vertex shader
+ID3D11PixelShader        — pixel (fragment) shader
+ID3D11InputLayout        — vertex input format description
+
+DIRECTX 12 (EXPLICIT)
+──────────────────────
+Similar to Vulkan in philosophy:
+ID3D12Device             — logical device
+ID3D12CommandQueue       — submit command lists
+ID3D12CommandAllocator   — memory for commands
+ID3D12GraphicsCommandList — record draw commands
+IDXGISwapChain4          — presentation
+ID3D12DescriptorHeap     — GPU-visible descriptor tables
+ID3D12PipelineState      — compiled pipeline state object (PSO)
+ID3D12RootSignature      — shader resource binding layout
+ID3D12Resource           — buffers and textures
+ID3D12Fence              — CPU-GPU synchronization
+
+HLSL SHADER EXAMPLE
+────────────────────
+struct VSInput  { float3 pos : POSITION; float2 uv : TEXCOORD0; };
+struct PSInput  { float4 pos : SV_POSITION; float2 uv : TEXCOORD0; };
+
+cbuffer ConstantBuffer : register(b0) {
+    matrix MVP;
+};
+
+PSInput VS(VSInput input) {
+    PSInput output;
+    output.pos = mul(float4(input.pos, 1.0f), MVP);
+    output.uv  = input.uv;
+    return output;
+}
+
+Texture2D    tex : register(t0);
+SamplerState sam : register(s0);
+
+float4 PS(PSInput input) : SV_TARGET {
+    return tex.Sample(sam, input.uv);
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. METAL (Apple)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Apple's low-level API for macOS, iOS, tvOS (2014)
+- Replaced OpenGL on Apple platforms (deprecated 2018)
+- MSL (Metal Shading Language) — C++14 based
+- Explicit control similar to Vulkan/DX12
+- MTLDevice, MTLCommandQueue, MTLRenderPipelineState
+- MoltenVK — translates Vulkan calls to Metal (allows Vulkan on Mac)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. GRAPHICS DRIVER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+WHAT IS A GRAPHICS DRIVER?
+───────────────────────────
+Software that sits between the OS/API and the GPU hardware.
+Translates API calls into GPU-specific machine instructions.
+
+DRIVER RESPONSIBILITIES
+────────────────────────
+- Compile shaders to GPU ISA (Instruction Set Architecture)
+- Manage GPU memory allocation and transfer
+- Handle API state validation (especially OpenGL)
+- Schedule work on GPU queues
+- Power management (clock speeds, thermal throttling)
+- Error recovery and TDR (Timeout Detection and Recovery)
+- OpenGL state machine emulation (huge amount of work)
+
+DRIVER COMPONENTS
+─────────────────
+User Mode Driver (UMD)  — API translation, shader compilation, resource management
+                          Runs in user space, different per API
+Kernel Mode Driver (KMD) — hardware scheduling, memory management, DMA
+                           Runs in kernel space, shared
+
+NVIDIA DRIVER STACK
+────────────────────
+Application → OpenGL/Vulkan/CUDA API
+  → nvoglv64.dll (OpenGL UMD) / vulkan-1.dll → nvlddmkm.sys (KMD) → GPU
+
+AMD DRIVER STACK
+────────────────
+Application → API
+  → amdvlk64.dll (Vulkan) / atig6pxx.dll (DX) → amdkmdag.sys (KMD) → GPU
+
+WHY OPENGL DRIVERS ARE COMPLEX
+────────────────────────────────
+OpenGL drivers must:
+- Track all global state
+- Validate thousands of state combinations
+- Compile shaders lazily (at draw time)
+- Recompile shaders when state changes (pipeline variants)
+- Hide GPU memory management from developer
+This is why OpenGL has high CPU overhead vs Vulkan/DX12.
+
+SHADER COMPILATION IN DRIVERS
+──────────────────────────────
+OpenGL:  GLSL text → driver compiles at runtime → GPU ISA
+         Problem: compile stutter, different output per driver
+Vulkan:  GLSL/HLSL → SPIR-V bytecode → driver compiles SPIR-V → GPU ISA
+         SPIR-V is portable intermediate representation
+DX12:    HLSL → DXIL bytecode → driver compiles → GPU ISA
+
+DRIVER BUGS
+───────────
+Different GPU vendors produce slightly different results from same shader.
+Common issues:
+- Precision differences (float operations)
+- Extension support varies
+- Undefined behavior interpreted differently
+- Performance differences for same code
+Always test on multiple GPU vendors.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. THE RENDER PIPELINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+THE TRADITIONAL RASTERIZATION PIPELINE
+────────────────────────────────────────
+
+[CPU] Upload vertex data, set state, issue draw call
+          ↓
+┌─────────────────────────────────────────────────────────┐
+│                    GPU PIPELINE                          │
+│                                                          │
+│  1. INPUT ASSEMBLER                                      │
+│     Read vertex/index buffers                            │
+│     Assemble primitives (triangles, lines, points)       │
+│          ↓                                               │
+│  2. VERTEX SHADER  [programmable]                        │
+│     Run per vertex                                       │
+│     Transform positions: object → world → clip space     │
+│     gl_Position = projection * view * model * pos        │
+│          ↓                                               │
+│  3. TESSELLATION  [programmable, optional]               │
+│     Hull Shader → Tessellator → Domain Shader            │
+│     Subdivide patches into more triangles                │
+│     Used for terrain, smooth curves                      │
+│          ↓                                               │
+│  4. GEOMETRY SHADER  [programmable, optional]            │
+│     Run per primitive (triangle/line/point)              │
+│     Can emit/discard primitives                          │
+│     Used for particle systems, shadow volumes, cubemaps  │
+│          ↓                                               │
+│  5. RASTERIZATION  [fixed function]                      │
+│     Convert triangles to fragments (pixels)              │
+│     Perspective divide: clip space → NDC                 │
+│     Viewport transform: NDC → screen pixels              │
+│     Interpolate vertex attributes across triangle        │
+│          ↓                                               │
+│  6. FRAGMENT / PIXEL SHADER  [programmable]              │
+│     Run per fragment (potential pixel)                   │
+│     Calculate final color                                │
+│     Texture sampling, lighting calculations              │
+│          ↓                                               │
+│  7. OUTPUT MERGER / PER-SAMPLE OPERATIONS                │
+│     Depth Test    — discard fragment if behind geometry  │
+│     Stencil Test  — mask fragments by stencil buffer     │
+│     Blending      — combine with existing framebuffer    │
+│     Write to Framebuffer                                 │
+└─────────────────────────────────────────────────────────┘
+          ↓
+     PRESENT to screen (swap buffers)
+
+COORDINATE SPACES
+─────────────────
+Object Space    — local to the mesh (origin at mesh center)
+World Space     — positioned in the game world (model matrix applied)
+View Space      — relative to camera (view matrix applied)
+Clip Space      — after projection matrix, homogeneous coordinates
+NDC             — Normalized Device Coordinates (-1 to 1)
+Screen Space    — pixel coordinates on screen
+
+TRANSFORMS
+──────────
+Model Matrix       — object position, rotation, scale in world
+View Matrix        — inverse of camera transform
+Projection Matrix  — perspective or orthographic projection
+MVP = Projection * View * Model
+
+PERSPECTIVE vs ORTHOGRAPHIC
+────────────────────────────
+Perspective:   objects smaller with distance (3D games)
+Orthographic:  no perspective, parallel lines stay parallel (2D, UI, CAD)
+
+DEPTH BUFFER (Z-BUFFER)
+────────────────────────
+Stores depth value per pixel (0.0 to 1.0).
+Before writing fragment, compare depth with stored value.
+Closer fragment wins and overwrites. Prevents overdraw artifacts.
+Precision issues: Z-fighting when two surfaces very close.
+Reverse-Z: use reversed depth (1.0 = near, 0.0 = far) for better precision.
+
+COMPUTE SHADER
+──────────────
+Not part of rasterization pipeline.
+General purpose GPU computation (GPGPU).
+Used for: particle simulation, post-processing, culling, physics, AI.
+Runs in thread groups — massively parallel.
+
+MESH SHADER PIPELINE (modern)
+──────────────────────────────
+Replaces Input Assembler + Vertex + Geometry stages.
+Task Shader → Mesh Shader → Rasterizer → Fragment Shader
+More flexible geometry generation, better culling.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. RENDERING TECHNIQUES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FORWARD RENDERING
+─────────────────
+Each object rendered once per light affecting it.
+Simple, good for few lights, transparent objects easy.
+Expensive with many lights: O(objects × lights) draw calls.
+
+DEFERRED RENDERING
+──────────────────
+Pass 1 (Geometry Pass): render all geometry into G-Buffer
+  G-Buffer stores: position, normal, albedo, material per pixel
+Pass 2 (Lighting Pass): calculate lighting using G-Buffer data
+  One pass per light, only affects visible pixels.
+Handles many lights efficiently: O(objects + lights)
+Downside: MSAA difficult, high memory bandwidth, no transparency.
+
+G-BUFFER CONTENTS (typical)
+────────────────────────────
+RT0: Albedo (RGB) + Roughness (A)
+RT1: World Normal (RGB) + Metallic (A)
+RT2: World Position (or reconstruct from depth)
+Depth Buffer: for reconstruction and depth testing
+
+FORWARD+ (TILED FORWARD)
+─────────────────────────
+Divide screen into tiles (e.g. 16x16 pixels).
+Compute pass: assign lights to tiles.
+Forward pass: each fragment only processes lights in its tile.
+Best of both: handles many lights, supports MSAA and transparency.
+
+SHADOW MAPPING
+──────────────
+1. Render scene from light's perspective → shadow map (depth texture)
+2. Render scene from camera: compare fragment depth to shadow map
+3. If fragment farther than shadow map → in shadow
+Issues: aliasing, shadow acne (bias needed), limited resolution
+PCF (Percentage Closer Filtering) — softer shadows by sampling area
+PCSS (Percentage Closer Soft Shadows) — variable penumbra soft shadows
+CSM (Cascaded Shadow Maps) — multiple shadow maps at different ranges
+
+ANTI-ALIASING
+──────────────
+MSAA  — Multisample AA: multiple depth/stencil samples per pixel. GPU hardware.
+FXAA  — Fast Approximate AA: post-process edge blur. Cheap, blurry.
+TAA   — Temporal AA: accumulate frames over time. Current industry standard.
+SMAA  — Enhanced morphological AA: better than FXAA, cheaper than MSAA.
+DLSS  — NVIDIA AI upscaling (render at lower res, upscale with neural net)
+FSR   — AMD FidelityFX Super Resolution (upscaling, works on any GPU)
+XeSS  — Intel upscaling
+
+TEXTURE FILTERING
+─────────────────
+Nearest (Point):    sharp, pixelated
+Bilinear:           smooth, blurs at angle
+Trilinear:          bilinear + mipmap interpolation
+Anisotropic (AF):   best quality at steep angles (16x is typical max)
+
+MIPMAPS
+───────
+Pre-computed smaller versions of texture (1/2, 1/4, 1/8...).
+GPU selects appropriate mip level based on screen-space footprint.
+Prevents aliasing on distant surfaces, improves cache performance.
+
+RAY TRACING
+───────────
+Cast rays from camera → test against scene geometry → shade hit point.
+Handles reflections, shadows, global illumination physically correctly.
+Expensive — requires RT hardware (NVIDIA RTX, AMD RDNA2+)
+DXR (DirectX Raytracing), VK_KHR_ray_tracing, OptiX (NVIDIA)
+Hybrid rendering: rasterize primary visibility, ray trace shadows/reflections.
+
+PBR (PHYSICALLY BASED RENDERING)
+──────────────────────────────────
+Metallic-Roughness workflow:
+  Albedo    — base color
+  Metallic  — 0=dielectric, 1=metal
+  Roughness — 0=mirror, 1=completely rough
+  Normal Map — surface detail without geometry
+  AO        — ambient occlusion
+  Emissive  — self-illumination
+
+BRDF (Bidirectional Reflectance Distribution Function):
+  Cook-Torrance — standard PBR BRDF
+  Components: D (normal distribution) × G (geometry) × F (Fresnel)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. GPU ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GPU COMPONENTS
+──────────────
+SM / CU         — Streaming Multiprocessor (NVIDIA) / Compute Unit (AMD)
+                  Each contains many shader cores (CUDA cores / Stream processors)
+VRAM            — Video RAM (GDDR6, HBM2) — fast dedicated GPU memory
+L1/L2 Cache     — on-chip fast cache
+Texture Units   — sample and filter textures
+ROPs            — Render Output Units — final pixel writing, blending
+Command Processor — receives API commands from driver
+DMA Engine      — async memory transfers (CPU↔GPU)
+RT Cores        — dedicated ray tracing hardware (NVIDIA Turing+)
+Tensor Cores    — matrix multiply for AI/DLSS (NVIDIA)
+
+EXECUTION MODEL
+───────────────
+SIMD (Single Instruction Multiple Data):
+  GPU executes same instruction on 32 (NVIDIA warp) / 64 (AMD wavefront) threads
+  simultaneously.
+  If threads diverge (different if/else branches), must serialize → slow.
+  Avoid divergence in shaders.
+
+MEMORY HIERARCHY (fast → slow)
+────────────────────────────────
+Registers          — per thread, fastest
+Shared Memory (LDS)— per thread group, very fast, programmer managed
+L1 Cache           — per SM/CU, automatic
+L2 Cache           — whole GPU, automatic
+VRAM (GDDR6/HBM)   — whole GPU, fast
+System RAM         — over PCIe, slow
+Disk               — very slow
+
+BANDWIDTH vs LATENCY
+─────────────────────
+GPU optimized for bandwidth (move lots of data).
+CPU optimized for latency (respond fast to one thing).
+GPU hides latency by switching to another warp while one waits for memory.
+More warps in flight = better latency hiding.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. PERFORMANCE CONCEPTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CPU-BOUND vs GPU-BOUND
+──────────────────────
+CPU-bound: CPU is bottleneck. GPU waiting for draw calls.
+  → Reduce draw calls, use instancing, frustum culling
+GPU-bound: GPU is bottleneck. CPU has nothing to do.
+  → Reduce shading complexity, lower resolution, simplify geometry
+
+DRAW CALLS
+──────────
+Each draw call = significant CPU overhead (state change, validation, submission).
+Target: <1000 draw calls per frame for real-time.
+Solutions:
+  Instancing     — draw thousands of same mesh in one call
+  Batching       — combine meshes sharing material into one draw call
+  Indirect Draw  — GPU generates draw calls (compute shader)
+
+BANDWIDTH BOTTLENECKS
+──────────────────────
+Texture bandwidth:   use compressed textures (BC1-7, ASTC), proper mipmaps
+Render target:       limit render target count and resolution
+Vertex bandwidth:    pack vertex data tightly, use 16-bit where possible
+
+OVERDRAW
+────────
+Same pixel shaded multiple times (transparent objects, no early-Z).
+Expensive fragment shaders make overdraw costly.
+Sort transparent objects back-to-front.
+Use depth prepass for opaque objects.
+
+VERTEX vs FRAGMENT BOUND
+─────────────────────────
+Vertex bound:   too many vertices. Reduce polygon count, use LOD.
+Fragment bound: too many pixels or complex shaders. Reduce resolution, simplify.
+
+FILL RATE
+──────────
+Pixels filled per second by GPU ROPs.
+Overdraw × resolution × fragment shader cost.
+Full-screen post-process = entire screen touched once per pass.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. PROFILING TOOLS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+NVIDIA NSIGHT GRAPHICS
+──────────────────────
+Platform:   Windows, Linux (NVIDIA GPUs)
+Use:        Frame capture, GPU trace, shader debugging
+Features:
+  - Frame Debugger: inspect every draw call, resource state, pipeline state
+  - GPU Trace: timeline of GPU work, memory bandwidth, occupancy
+  - Shader Profiler: per-instruction timing, register usage
+  - Ray Tracing analysis
+Best for:   Vulkan, DX12, DX11, OpenGL on NVIDIA
+
+NVIDIA NSIGHT SYSTEMS
+──────────────────────
+Platform:   Windows, Linux, Android, macOS
+Use:        System-wide CPU+GPU profiling
+Features:
+  - Timeline: CPU threads, GPU streams, API calls overlaid
+  - CUDA profiling
+  - Memory transfers and bandwidth
+  - OS events, driver events
+Best for:   Finding CPU-GPU synchronization stalls, overall performance
+
+AMD RDNA PERFORMANCE COUNTER / RGP
+────────────────────────────────────
+RGP (Radeon GPU Profiler):
+  - GPU frame timeline, wavefront occupancy
+  - Pipeline stalls, cache hit rates
+  - Barrier analysis (Vulkan/DX12)
+  - Event timing
+RenderDoc integration supported.
+
+RENDERDOC
+─────────
+Platform:   Windows, Linux, Android, macOS (open source)
+Use:        Frame capture and replay debugger
+Features:
+  - Capture any frame, inspect every draw call
+  - View all buffers, textures, render targets at any point
+  - Replay draw calls step by step
+  - Shader debugging (step through shader code)
+  - API event list with timestamps
+  - Resource inspection (vertex buffers, uniforms, textures)
+  - Works with: Vulkan, OpenGL, DX11, DX12, OpenGL ES
+Best for:   Debugging rendering bugs, not perf profiling
+
+INTEL GRAPHICS PERFORMANCE ANALYZERS (GPA)
+────────────────────────────────────────────
+Platform:   Windows (Intel GPUs, also NVIDIA/AMD via some features)
+Use:        Frame analysis, GPU metrics
+Features:
+  - Frame Analyzer: per-draw call metrics
+  - System Analyzer: CPU+GPU timeline
+  - Metrics Explorer: hardware performance counters
+
+PIX (Microsoft)
+───────────────
+Platform:   Windows, Xbox
+Use:        DX11/DX12 frame capture and GPU profiling
+Features:
+  - Frame capture and analysis
+  - GPU timing, memory usage
+  - Shader debugging
+  - Xbox-specific profiling
+
+APPLE INSTRUMENTS / METAL DEBUGGER
+────────────────────────────────────
+Platform:   macOS, iOS
+Use:        Metal API profiling and debugging
+Features:
+  - GPU timeline, shader profiling
+  - Memory allocation tracking
+  - Frame capture in Xcode
+
+UNITY PROFILER
+──────────────
+Built-in Unity profiling:
+  - CPU timeline (scripting, physics, rendering)
+  - GPU timeline (draw calls, shadow caster, post-process)
+  - Memory usage
+  - Frame Debugger: replay Unity's render pass step by step
+  - Profile Analyzer: compare captures
+
+UNREAL INSIGHTS
+───────────────
+Built-in Unreal Engine profiler:
+  - CPU/GPU timings
+  - Memory tracking
+  - Network profiling
+  - stat commands in editor:
+    stat fps, stat unit, stat gpu, stat scenerendering
+
+GENERAL CPU PROFILERS
+──────────────────────
+Visual Studio Profiler  — Windows, sampling and instrumentation
+VTune (Intel)           — CPU microarchitecture analysis
+Superluminal            — fast sampling profiler for games
+Tracy                   — open source, real-time frame profiler
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. SHADER LANGUAGES COMPARISON
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GLSL (OpenGL Shading Language)
+──────────────────────────────
+Used by OpenGL and Vulkan (compiled to SPIR-V)
+C-like syntax
+vec2, vec3, vec4, mat4, sampler2D
+Built-ins: gl_Position, gl_FragCoord, texture(), normalize(), dot()
+
+HLSL (High Level Shading Language)
+────────────────────────────────────
+Used by DirectX (DX9 to DX12)
+C-like, more verbose types
+float2, float3, float4, float4x4, Texture2D, SamplerState
+Built-ins: SV_Position, SV_Target, mul(), normalize(), dot()
+
+MSL (Metal Shading Language)
+─────────────────────────────
+Apple Metal, based on C++14
+float2, float3, float4, float4x4, texture2d<float>
+Explicit buffer/texture binding via [[buffer(n)]], [[texture(n)]]
+
+SPIR-V
+──────
+Intermediate binary bytecode for Vulkan (and OpenCL)
+Not written directly — compiled from GLSL/HLSL
+Portable across GPU vendors, driver compiles to GPU ISA
+glslangValidator, shaderc — GLSL → SPIR-V compilers
+dxc (DirectX Compiler) — HLSL → SPIR-V
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13. GRAPHICS API COMPARISON SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+                OpenGL      Vulkan      DirectX 11   DirectX 12   Metal
+Platforms       Multi       Multi       Windows/Xbox Windows/Xbox Apple
+Control level   Low         Very High   Medium       High         Medium-High
+CPU overhead    High        Low         Medium       Low          Low
+Verbosity       Low         Very High   Medium       High         Medium
+Multithreading  Poor        Excellent   Limited      Good         Good
+Shader lang     GLSL        SPIR-V      HLSL         HLSL         MSL
+Learning curve  Moderate    Steep       Moderate     Steep        Moderate
+Ray Tracing     No*         Yes         No*          Yes (DXR)    No*
+Best use case   Tools/edu   AAA/engine  Legacy games AAA/console  Apple games
+
+* Extensions exist but not core
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+14. ABSTRACTION LAYERS & ENGINES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Most real applications don't use raw APIs. Layers:
+
+BGFX             — cross-platform rendering abstraction (OpenGL/Vulkan/DX/Metal)
+SDL2             — window + OpenGL context creation (not rendering)
+GLFW             — lightweight window + input for OpenGL/Vulkan
+GLM              — math library (matrices, vectors) matching GLSL conventions
+Dear ImGui       — immediate mode GUI for debug overlays
+stb_image        — single-header image loading
+
+GAME ENGINES
+────────────
+Unreal Engine    — uses DX11/DX12/Vulkan/Metal, Nanite, Lumen
+Unity            — uses DX11/DX12/Vulkan/Metal via HDRP/URP/Built-in
+Godot            — Vulkan (Godot 4), OpenGL (Godot 3)
+CryEngine        — DX11/DX12
+id Tech          — Vulkan (Doom Eternal, Quake)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+15. COMMON INTERVIEW QUESTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is the difference between OpenGL and Vulkan?
+A: Vulkan is explicit — you manage memory, synchronization, command buffers,
+   pipeline state manually. OpenGL's driver handles all that automatically.
+   Vulkan has near-zero CPU overhead and excellent multi-threading support.
+   OpenGL is simpler but the driver does heavy work causing CPU overhead.
+
+Q: What is a draw call and why is it expensive?
+A: A draw call is a CPU command to the GPU to render geometry.
+   Expensive because: API validation, driver state setup, command submission.
+   Reduce via instancing, batching, GPU-driven rendering.
+
+Q: What is the difference between a vertex and fragment shader?
+A: Vertex shader runs once per vertex — transforms position to clip space.
+   Fragment shader runs once per fragment (potential pixel) — calculates color.
+   Fragment shader typically runs far more often.
+
+Q: What is the depth buffer?
+A: A buffer storing depth value (0-1) for each pixel. Before writing a fragment,
+   its depth is compared to the stored value. Closer fragments overwrite further
+   ones, ensuring correct occlusion.
+
+Q: What is the difference between deferred and forward rendering?
+A: Forward renders each object with full lighting each draw call — simple but
+   scales poorly with many lights. Deferred stores geometry data in G-Buffer
+   first, then applies all lighting in screen space — efficient for many lights.
+
+Q: What is a pipeline state object (PSO)?
+A: In modern APIs (Vulkan, DX12), a PSO is a pre-compiled combination of all
+   pipeline state: shaders, blend, depth, rasterizer, vertex format.
+   Pre-compilation eliminates draw-time stalls. No global state changes.
+
+Q: What is the G-Buffer?
+A: Set of textures storing intermediate geometry data (position, normal, albedo,
+   material) written in the geometry pass of deferred rendering. Used by the
+   lighting pass to calculate final color per pixel.
+
+Q: What is a render pass in Vulkan?
+A: Describes how attachments (color, depth) are used during rendering — what to
+   load/store, transitions, and subpasses. Allows the driver/hardware to
+   optimize memory usage, especially on tile-based GPUs (mobile).
+
+Q: What causes shader compilation stutter?
+A: In OpenGL, shaders compile when first used in a draw call. New pipeline
+   combinations trigger recompilation. Solutions: pre-warm pipeline cache,
+   use Vulkan/DX12 PSOs compiled ahead of time.
+
+Q: What is VRAM and why does it matter?
+A: Video RAM — dedicated fast memory on the GPU. Stores textures, buffers,
+   render targets. If VRAM is exhausted, assets spill to system RAM over PCIe
+   which is 10-20x slower, causing massive performance drops.
+
+═══════════════════════════════════════════════════════════════════════════════
+         UNITY / C# / HLSL GRAPHICS — EXTENDED REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+16. UNITY RENDER PIPELINES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Unity has three render pipelines. Shaders are NOT cross-compatible between them.
+
+BUILT-IN RENDER PIPELINE
+─────────────────────────
+- Legacy, available since Unity 1
+- Uses OpenGL/DX11 under the hood
+- ShaderLab + Cg/HLSL
+- Surface Shaders — Unity auto-generates lighting passes
+- Not SRP (Scriptable Render Pipeline)
+- Limited customization, good for beginners
+- Rendering paths: Forward, Deferred, Legacy Deferred, Vertex Lit
+
+URP (Universal Render Pipeline)
+────────────────────────────────
+- Lightweight, cross-platform (mobile, PC, console, WebGL, XR)
+- Replaces the old Lightweight RP
+- Single-pass forward rendering by default
+- Custom renderer features via ScriptableRendererFeature
+- Shader Graph supported
+- HLSL-based shaders (no Surface Shaders)
+- Good balance: performance + quality
+- Best for: mobile, indie, 2D/3D cross-platform
+
+HDRP (High Definition Render Pipeline)
+────────────────────────────────────────
+- High-end PC and console only
+- Physically accurate rendering (PBR, volumetrics, ray tracing)
+- Deferred rendering + Forward for transparent
+- Fullscreen passes, volumetric lighting, SSR, SSAO
+- Shader Graph supported
+- HLSL-based shaders
+- DXR ray tracing support on NVIDIA RTX
+- Best for: AAA-quality PC/console games
+
+HOW UNITY MAPS TO GRAPHICS APIs
+─────────────────────────────────
+Platform          API Used
+Windows           DX11 (default), DX12, Vulkan
+Linux             Vulkan, OpenGL
+macOS             Metal
+Android           Vulkan, OpenGL ES
+iOS               Metal
+WebGL             WebGL2 (OpenGL ES 3.0)
+PS4/PS5           GNM / GNMX
+Xbox              DX11 / DX12
+
+You can force API in Player Settings or at runtime:
+  PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64,
+      new[] { GraphicsDeviceType.Direct3D12 });
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+17. SHADERLAB & UNITY SHADER STRUCTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ShaderLab is Unity's shader wrapper language. HLSL lives inside it.
+
+FULL SHADER ANATOMY (URP Unlit Example)
+────────────────────────────────────────
+Shader "Custom/MyUnlit"
+{
+    Properties
+    {
+        _BaseColor  ("Base Color", Color) = (1,1,1,1)
+        _BaseMap    ("Texture",    2D)    = "white" {}
+        _Intensity  ("Intensity",  Float) = 1.0
+    }
+
+    SubShader
+    {
+        Tags {
+            "RenderPipeline" = "UniversalPipeline"
+            "RenderType"     = "Opaque"
+            "Queue"          = "Geometry"
+        }
+
+        Pass
+        {
+            Name "ForwardLit"
+            Tags { "LightMode" = "UniversalForward" }
+
+            Cull   Back
+            ZWrite On
+            ZTest  LEqual
+            Blend  Off
+
+            HLSLPROGRAM
+            #pragma vertex   vert
+            #pragma fragment frag
+            #pragma multi_compile_fog
+            #pragma multi_compile _ _MAIN_LIGHT_SHADOWS
+
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+
+            CBUFFER_START(UnityPerMaterial)
+                float4 _BaseColor;
+                float4 _BaseMap_ST;
+                float  _Intensity;
+            CBUFFER_END
+
+            TEXTURE2D(_BaseMap);
+            SAMPLER(sampler_BaseMap);
+
+            struct Attributes
+            {
+                float3 positionOS : POSITION;
+                float2 uv         : TEXCOORD0;
+                float3 normalOS   : NORMAL;
+            };
+
+            struct Varyings
+            {
+                float4 positionCS : SV_POSITION;
+                float2 uv         : TEXCOORD0;
+                float3 normalWS   : TEXCOORD1;
+            };
+
+            Varyings vert(Attributes IN)
+            {
+                Varyings OUT;
+                OUT.positionCS = TransformObjectToHClip(IN.positionOS);
+                OUT.uv         = TRANSFORM_TEX(IN.uv, _BaseMap);
+                OUT.normalWS   = TransformObjectToWorldNormal(IN.normalOS);
+                return OUT;
+            }
+
+            half4 frag(Varyings IN) : SV_Target
+            {
+                half4 texColor = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, IN.uv);
+                return texColor * _BaseColor * _Intensity;
+            }
+            ENDHLSL
+        }
+    }
+    FallBack "Hidden/Universal Render Pipeline/FallbackError"
+}
+
+SHADERLAB RENDER STATES
+────────────────────────
+Cull Off / Back / Front       — face culling
+ZWrite On / Off               — write to depth buffer
+ZTest Less / LEqual / Always  — depth comparison
+Blend SrcAlpha OneMinusSrcAlpha  — standard transparency
+Blend One One                 — additive blending
+ColorMask RGBA / 0            — which channels to write
+Offset -1, -1                 — polygon offset (fix z-fighting)
+Stencil { Ref N Comp Equal }  — stencil operations
+
+SHADER TAGS
+───────────
+"Queue"         = "Background"   (1000)
+                  "Geometry"     (2000) — default opaque
+                  "AlphaTest"    (2450)
+                  "Transparent"  (3000) — sorted back to front
+                  "Overlay"      (4000)
+"RenderType"    = "Opaque" / "Transparent" / "TransparentCutout"
+"LightMode"     = "UniversalForward" / "ShadowCaster" / "DepthOnly"
+                  "UniversalGBuffer" (HDRP deferred)
+
+MULTI_COMPILE vs SHADER_FEATURE
+────────────────────────────────
+#pragma multi_compile   A B    — always includes both variants in build
+#pragma shader_feature  A B    — only includes variants actually used
+                                 Use shader_feature for material keywords,
+                                 multi_compile for global keywords
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+18. HLSL IN UNITY — KEY CONCEPTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+UNITY HLSL TYPES
+─────────────────
+float    — 32-bit float (positions, high precision calculations)
+half     — 16-bit float (color, normals on mobile — faster)
+fixed    — 11-bit float (legacy, avoid in URP/HDRP)
+float2, float3, float4      — vectors
+float4x4, float3x3          — matrices
+half4                       — 4-component half (common for colors)
+
+SEMANTICS
+─────────
+Input:   POSITION, NORMAL, TANGENT, TEXCOORD0-7, COLOR, SV_VertexID, SV_InstanceID
+Output:  SV_POSITION, SV_Target, SV_Target0-7, SV_Depth
+
+BUILT-IN TRANSFORM FUNCTIONS (URP ShaderLibrary)
+──────────────────────────────────────────────────
+TransformObjectToHClip(posOS)          — object → clip space (MVP)
+TransformObjectToWorld(posOS)          — object → world space
+TransformWorldToHClip(posWS)           — world → clip space
+TransformObjectToWorldNormal(normalOS) — transform normal correctly
+TransformObjectToWorldDir(dirOS)       — transform direction
+GetVertexPositionInputs(positionOS)    — returns PositionInputs struct
+GetVertexNormalInputs(normalOS)        — returns NormalInputs struct
+
+BUILT-IN VARIABLES
+────────────────────
+UNITY_MATRIX_M / V / P / VP / MVP    — transform matrices
+_WorldSpaceCameraPos                  — camera world position
+_Time                                 — float4 (t/20, t, t*2, t*3)
+_SinTime / _CosTime                   — sin/cos of time
+
+TEXTURE SAMPLING MACROS
+────────────────────────
+TEXTURE2D(_MainTex);  SAMPLER(sampler_MainTex);
+SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, uv)
+SAMPLE_TEXTURE2D_LOD(_MainTex, sampler_MainTex, uv, lod)
+SAMPLE_TEXTURECUBE(_Cube, sampler_Cube, dir)
+
+CBUFFER (required for SRP Batcher)
+────────────────────────────────────
+CBUFFER_START(UnityPerMaterial)
+    float4 _BaseColor;
+    float  _Smoothness;
+CBUFFER_END
+
+HLSL MATH FUNCTIONS
+────────────────────
+dot, cross, normalize, length, lerp, saturate, clamp, abs, pow, sqrt
+floor, ceil, round, frac, step, smoothstep
+reflect, refract, ddx, ddy
+mul(mat, vec), transpose, inverse
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+19. URP LIGHTING IN HLSL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+
+MAIN LIGHT
+───────────
+Light mainLight = GetMainLight();
+float3 lightDir  = mainLight.direction;
+float3 lightColor = mainLight.color;
+float  shadow    = mainLight.shadowAttenuation;
+
+float4 shadowCoord = TransformWorldToShadowCoord(positionWS);
+Light mainLight = GetMainLight(shadowCoord);  // with shadows
+
+DIFFUSE (LAMBERT)
+──────────────────
+float NdotL   = saturate(dot(normalWS, lightDir));
+float3 diffuse = lightColor * NdotL;
+
+SPECULAR (BLINN-PHONG)
+───────────────────────
+float3 viewDir    = normalize(_WorldSpaceCameraPos - positionWS);
+float3 halfVector = normalize(lightDir + viewDir);
+float  NdotH      = saturate(dot(normalWS, halfVector));
+float3 specular   = lightColor * pow(NdotH, _Shininess);
+
+PBR (FULL URP)
+───────────────
+InputData inputData;                    // fill positionWS, normalWS, viewDir, shadowCoord
+SurfaceData surfaceData;                // fill albedo, metallic, smoothness, occlusion, emission
+half4 color = UniversalFragmentPBR(inputData, surfaceData);
+
+ADDITIONAL LIGHTS
+──────────────────
+#pragma multi_compile _ _ADDITIONAL_LIGHTS
+uint lightCount = GetAdditionalLightsCount();
+for (uint i = 0; i < lightCount; i++) {
+    Light light = GetAdditionalLight(i, positionWS);
+    diffuse += light.color * light.distanceAttenuation
+               * saturate(dot(normalWS, light.direction));
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+20. CUSTOM RENDER FEATURES (URP C#)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+public class OutlineFeature : ScriptableRendererFeature {
+    public override void Create() {
+        pass = new OutlinePass();
+        pass.renderPassEvent = RenderPassEvent.AfterRenderingOpaques;
+    }
+    public override void AddRenderPasses(ScriptableRenderer renderer,
+                                          ref RenderingData data) {
+        renderer.EnqueuePass(pass);
+    }
+}
+
+public class OutlinePass : ScriptableRenderPass {
+    public override void Execute(ScriptableRenderContext context,
+                                  ref RenderingData data) {
+        CommandBuffer cmd = CommandBufferPool.Get("Outline");
+        // blit, draw calls...
+        context.ExecuteCommandBuffer(cmd);
+        CommandBufferPool.Release(cmd);
+    }
+}
+
+RENDER PASS EVENT ORDER
+────────────────────────
+BeforeRendering → Shadows → PrePasses (depth) → Gbuffer →
+Opaques → Skybox → Transparents → PostProcessing → AfterRendering
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+21. COMPUTE SHADERS IN UNITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COMPUTE FILE (.compute)
+────────────────────────
+#pragma kernel CSMain
+RWTexture2D<float4>    Result;
+StructuredBuffer<float3>   Input;
+RWStructuredBuffer<float3> Output;
+
+[numthreads(8, 8, 1)]
+void CSMain(uint3 id : SV_DispatchThreadID) {
+    Output[id.x] = Input[id.x] * 2.0;
+    Result[id.xy] = float4(id.x/512.0, id.y/512.0, 0, 1);
+}
+
+C# DISPATCH
+────────────
+int kernel = cs.FindKernel("CSMain");
+ComputeBuffer buf = new ComputeBuffer(count, sizeof(float)*3);
+buf.SetData(data);
+cs.SetBuffer(kernel, "Input", buf);
+cs.Dispatch(kernel, width/8, height/8, 1);   // groups = size/numthreads
+buf.GetData(result);   // read back (stalls GPU — avoid in hot path)
+buf.Release();
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+22. POST-PROCESSING & RENDER TEXTURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+URP BUILT-IN EFFECTS (Volume system)
+──────────────────────────────────────
+Bloom, Depth of Field, Motion Blur, Vignette, Color Grading,
+Tonemapping (ACES), Chromatic Aberration, Lens Distortion,
+Film Grain, SSAO, SSR (URP 2022+)
+
+var bloom = VolumeManager.instance.stack.GetComponent<Bloom>();
+bloom.intensity.value = 1.5f;
+
+RENDER TEXTURE
+──────────────
+RenderTexture rt = new RenderTexture(512, 512, 24, RenderTextureFormat.ARGB32);
+rt.Create();
+camera.targetTexture = rt;
+material.SetTexture("_MainTex", rt);
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+23. BATCHING & INSTANCING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+MaterialPropertyBlock mpb = new MaterialPropertyBlock();
+mpb.SetColor("_BaseColor", Color.red);
+renderer.SetPropertyBlock(mpb);   // per-object override, no new material
+
+GPU Instancing:
+  Enable on material → #pragma multi_compile_instancing in shader
+  Graphics.DrawMeshInstanced(mesh, 0, mat, matrices, count, mpb);
+
+SRP Batcher:  reduces SetPass calls — requires CBUFFER_START(UnityPerMaterial)
+Static Batch: combine non-moving meshes at build time
+Dynamic Batch: auto-batch small meshes (DX11 only, vertex count limit)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+24. CONNECTING THEORY TO UNITY PRACTICE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+General Concept              How it appears in Unity
+─────────────────────────────────────────────────────────────────────────────
+Vertex Shader                vert() function in HLSLPROGRAM block
+Fragment Shader              frag() function, returns SV_Target
+Draw Call                    MeshRenderer + material = 1 draw call
+VBO / Vertex Buffer          Mesh asset (Unity manages)
+Uniform / Constant Buffer    CBUFFER_START(UnityPerMaterial) / material.SetFloat
+Texture Sampler              TEXTURE2D + SAMPLER macros
+Framebuffer                  RenderTexture or camera target
+Render Pass                  ScriptableRenderPass in URP
+Pipeline State Object        Shader + material settings (implicit)
+Depth Buffer                 ZWrite On/Off in ShaderLab
+G-Buffer                     HDRP deferred GBuffer textures
+Compute Shader               .compute file + ComputeShader C# class
+GPU Instancing               Graphics.DrawMeshInstanced
+Synchronization              Unity handles internally (abstracted)
+Command Buffer               CommandBuffer C# class (render features)
+Mipmaps                      Texture Import Settings → Generate Mip Maps
+Anisotropic Filtering        Texture Import Settings → Aniso Level
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+25. UNITY GRAPHICS INTERVIEW QUESTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is the difference between URP and HDRP?
+A: URP is cross-platform (mobile to PC), forward rendered, performance-focused.
+   HDRP is high-end PC/console only, deferred + forward, physically accurate.
+   Shaders are not compatible between them.
+
+Q: What is the SRP Batcher?
+A: Reduces SetPass calls (not draw calls) by caching shader state on GPU.
+   Requires all per-material properties in CBUFFER_START(UnityPerMaterial).
+
+Q: What is a MaterialPropertyBlock?
+A: Overrides shader properties per-renderer without creating new material
+   instances. Preserves batching, avoids memory allocation.
+
+Q: What does TransformObjectToHClip do?
+A: Multiplies vertex position by MVP matrix — transforms object space to
+   clip space. Equivalent to mul(UNITY_MATRIX_MVP, float4(posOS, 1.0)).
+
+Q: How do shader variants work and what problems can they cause?
+A: Each multi_compile keyword doubles compiled shader count. 10 keywords =
+   1024 variants. Causes long builds, large size, runtime stutter.
+   Use shader_feature (strips unused variants) and minimize keywords.
+
+Q: When would you use a compute shader in Unity?
+A: GPU-parallel tasks not tied to rendering: particle simulation, procedural
+   mesh, physics, image processing, GPU culling, pathfinding.
+
+Q: What is the depth prepass?
+A: Renders only depth (LightMode = DepthOnly) before color. Later passes
+   use ZTest Equal — occluded fragments skip expensive fragment shader.
+   Eliminates overdraw cost for complex shaders.
+
+Q: What is the difference between Batches and SetPass calls in Unity Stats?
+A: Batches = draw calls (geometry submissions). SetPass = shader state changes.
+   SRP Batcher reduces SetPass. Instancing/static batching reduces Batches.
+
+Q: How would you implement an outline effect in URP?
+A: ScriptableRendererFeature with a pass at AfterRenderingOpaques. Render
+   object scaled outward with inverted normals (or stencil-based). Use
+   CommandBuffer Blit to composite outline onto camera color texture.
+
+Q: What is the difference between multi_compile and shader_feature?
+A: multi_compile always includes all variants in the build regardless of use.
+   shader_feature only includes variants that are actually set on materials/
+   globally — strips unused variants, reducing build size.
+
+═══════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,166 @@
+═══════════════════════════════════════════════════
+               NUMBER SYSTEMS
+═══════════════════════════════════════════════════
+
+4 systems you need to know:
+
+  Binary      Base 2   digits: 0,1          prefix: 0b
+  Octal       Base 8   digits: 0-7          prefix: 0
+  Decimal     Base 10  digits: 0-9          prefix: (none)
+  Hexadecimal Base 16  digits: 0-9, A-F     prefix: 0x
+
+───────────────────────────────────────────────────
+CONVERSION TABLE (0–16)
+───────────────────────────────────────────────────
+
+Decimal  Binary    Octal  Hex
+  0      0000        0     0
+  1      0001        1     1
+  2      0010        2     2
+  3      0011        3     3
+  4      0100        4     4
+  5      0101        5     5
+  6      0110        6     6
+  7      0111        7     7
+  8      1000       10     8
+  9      1001       11     9
+ 10      1010       12     A
+ 11      1011       13     B
+ 12      1100       14     C
+ 13      1101       15     D
+ 14      1110       16     E
+ 15      1111       17     F
+ 16     10000       20    10
+
+───────────────────────────────────────────────────
+HOW TO CONVERT
+───────────────────────────────────────────────────
+
+■ Decimal → Binary
+  Repeatedly divide by 2, read remainders bottom to top.
+
+  44 ÷ 2 = 22 r 0
+  22 ÷ 2 = 11 r 0
+  11 ÷ 2 =  5 r 1
+   5 ÷ 2 =  2 r 1
+   2 ÷ 2 =  1 r 0
+   1 ÷ 2 =  0 r 1
+                ↑ read upward → 101100 = 44
+
+■ Binary → Decimal
+  Multiply each bit by its power of 2, sum them.
+
+  1 0 1 1 0 0
+  ↓ ↓ ↓ ↓ ↓ ↓
+  32+0+8+4+0+0 = 44
+
+■ Decimal → Hex
+  Repeatedly divide by 16, read remainders bottom to top.
+
+  253 ÷ 16 = 15 r 13 → D
+   15 ÷ 16 =  0 r 15 → F
+  Read upward → FD = 253
+
+■ Hex → Decimal
+  Multiply each digit by its power of 16, sum them.
+
+  FD = (15 × 16¹) + (13 × 16⁰)
+     = 240 + 13 = 253
+
+■ Binary → Hex  (easy shortcut)
+  Group bits in sets of 4 from the right, convert each group.
+
+  10111101
+  1011 1101
+   B    D   →  0xBD
+
+■ Hex → Binary
+  Expand each hex digit to 4 bits.
+
+  0x3F = 0011 1111
+
+■ Binary → Octal
+  Group bits in sets of 3 from the right, convert each group.
+
+  101110
+  101 110
+   5   6  →  56 (octal)
+
+───────────────────────────────────────────────────
+POWERS OF 2  (memorise these)
+───────────────────────────────────────────────────
+
+  2^0  =  1
+  2^1  =  2
+  2^2  =  4
+  2^3  =  8
+  2^4  =  16
+  2^5  =  32
+  2^6  =  64
+  2^7  =  128
+  2^8  =  256
+  2^9  =  512
+  2^10 =  1024      (1K)
+  2^16 =  65536
+  2^32 =  4294967296
+
+───────────────────────────────────────────────────
+POWERS OF 16
+───────────────────────────────────────────────────
+
+  16^0 =  1
+  16^1 =  16
+  16^2 =  256
+  16^3 =  4096
+  16^4 =  65536
+
+───────────────────────────────────────────────────
+WHY THESE BASES MATTER IN CS
+───────────────────────────────────────────────────
+
+Binary      → how hardware actually works (0V / 5V)
+Hex         → compact representation of binary (4 bits = 1 hex digit)
+             memory addresses, color codes (#FF5733), opcodes
+Octal       → Unix file permissions (chmod 755)
+Decimal     → human-readable output only
+
+───────────────────────────────────────────────────
+C++ LITERALS
+───────────────────────────────────────────────────
+
+  int a = 44;         // decimal
+  int b = 0b00101100; // binary   (C++14+)
+  int c = 054;        // octal    (leading zero!)
+  int d = 0x2C;       // hex
+
+  // print in different bases
+  cout << dec << 44;   // 44
+  cout << oct << 44;   // 54
+  cout << hex << 44;   // 2c
+
+  // print binary
+  cout << bitset<8>(44);  // 00101100
+
+───────────────────────────────────────────────────
+SIGNED NUMBERS — TWO'S COMPLEMENT
+───────────────────────────────────────────────────
+
+  Computers store negative numbers in two's complement.
+
+  To negate a number:
+    Step 1: flip all bits  (one's complement)
+    Step 2: add 1
+
+  Example: -44 in 8 bits
+    44  = 0010 1100
+    flip= 1101 0011
+    +1  = 1101 0100  → this is -44
+
+  MSB (leftmost bit) = sign bit
+    0 → positive
+    1 → negative
+
+  Range for 8-bit signed:   -128  to  127
+  Range for 8-bit unsigned:    0  to  255
+
+═══════════════════════════════════════════════════

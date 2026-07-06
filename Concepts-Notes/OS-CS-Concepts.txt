@@ -1,0 +1,456 @@
+═══════════════════════════════════════════════════════════════════════════════
+                    OS & CS INTERVIEW QUESTIONS & ANSWERS
+═══════════════════════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. PROCESSES & THREADS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is a process?
+A: A process is a program in execution. It has its own memory space (code, data,
+   heap, stack), file handles, and system resources. Each process is isolated —
+   one process cannot directly access another's memory.
+
+Q: What is a thread?
+A: A thread is the smallest unit of execution within a process. Multiple threads
+   share the same memory space (heap, global data) but each has its own stack
+   and registers. Threads are lighter than processes.
+
+Q: Difference between process and thread?
+A:
+   Process                          Thread
+   ─────────────────────────────    ─────────────────────────────
+   Own memory space                 Shares memory with other threads
+   Heavier, slow to create          Lighter, fast to create
+   Isolated (crash doesn't affect   Crash can affect entire process
+   other processes)
+   Communication via IPC            Communication via shared memory
+   Context switch is expensive      Context switch is cheaper
+
+Q: What are the states of a process?
+A: New → Ready → Running → Waiting → Terminated
+   - New:       Process is being created
+   - Ready:     Waiting to be assigned to CPU
+   - Running:   Instructions are being executed
+   - Waiting:   Waiting for I/O or event
+   - Terminated: Process has finished execution
+
+Q: What is context switching?
+A: Saving the state (registers, program counter, stack pointer) of a running
+   process/thread so the CPU can switch to another, and restoring that state
+   later. It has overhead — too many switches slow the system.
+
+Q: What is a PCB (Process Control Block)?
+A: A data structure maintained by the OS for each process. Contains:
+   - Process ID (PID)
+   - Process state
+   - Program counter
+   - CPU registers
+   - Memory management info
+   - I/O status
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. CPU SCHEDULING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is CPU scheduling?
+A: The OS decides which process in the ready queue gets CPU time next.
+   Goal: maximize CPU utilization, throughput, and minimize waiting time.
+
+Q: What are the main scheduling algorithms?
+A:
+   1. FCFS (First Come First Served)
+      - Non-preemptive, processes run in arrival order
+      - Simple but can cause convoy effect (short jobs wait behind long ones)
+
+   2. SJF (Shortest Job First)
+      - Picks process with shortest burst time
+      - Optimal average waiting time, but requires knowing burst time in advance
+      - Can cause starvation of long processes
+
+   3. Round Robin
+      - Each process gets a fixed time quantum (e.g. 10ms), then preempted
+      - Fair, good for time-sharing systems
+      - Performance depends on quantum size
+
+   4. Priority Scheduling
+      - Higher priority process runs first
+      - Can cause starvation — fixed by aging (gradually increase priority)
+
+   5. Multilevel Queue
+      - Ready queue split into multiple queues (foreground/background)
+      - Each queue has its own scheduling algorithm
+
+Q: What is preemptive vs non-preemptive scheduling?
+A: Preemptive: OS can interrupt a running process and give CPU to another.
+   Non-preemptive: Once a process starts running, it runs until it finishes
+   or voluntarily gives up the CPU.
+
+Q: What is starvation and aging?
+A: Starvation: A low-priority process never gets CPU time because high-priority
+   processes keep arriving.
+   Aging: Gradually increase the priority of waiting processes over time to
+   prevent starvation.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. SYNCHRONIZATION & DEADLOCK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is a race condition?
+A: When two or more threads access shared data simultaneously and the final
+   result depends on the order of execution.
+   Example: Two threads both do counter++ — one increment may be lost.
+
+Q: What is a critical section?
+A: A section of code that accesses shared resources and must not be executed
+   by more than one thread at a time.
+
+Q: What is a mutex?
+A: Mutual Exclusion lock. Only one thread can hold it at a time. Other threads
+   trying to lock it will block until it is released.
+
+Q: What is a semaphore?
+A: A signaling mechanism using a counter.
+   - Binary semaphore (0 or 1): works like a mutex
+   - Counting semaphore: controls access to a resource pool of N items
+   wait()/P() decrements, signal()/V() increments.
+
+Q: Difference between mutex and semaphore?
+A:
+   Mutex                            Semaphore
+   ─────────────────────────────    ─────────────────────────────
+   Ownership (only locker unlocks)  No ownership
+   Binary only (locked/unlocked)    Can be counting (0 to N)
+   Used for mutual exclusion        Used for signaling/resource count
+
+Q: What is deadlock?
+A: A situation where two or more processes are stuck waiting for each other
+   to release resources, and none can proceed.
+   Example: Process A holds Resource 1, waits for Resource 2.
+            Process B holds Resource 2, waits for Resource 1. → Deadlock.
+
+Q: What are the 4 conditions for deadlock (Coffman conditions)?
+A: ALL four must hold simultaneously:
+   1. Mutual Exclusion  — resource held by only one process at a time
+   2. Hold and Wait     — process holds a resource while waiting for another
+   3. No Preemption     — resources cannot be forcibly taken away
+   4. Circular Wait     — chain of processes each waiting for the next
+
+Q: How to handle deadlock?
+A: 1. Prevention  — eliminate one of the 4 Coffman conditions
+   2. Avoidance   — Banker's Algorithm: only grant resources if safe state maintained
+   3. Detection   — allow deadlock, detect it, then recover (kill process/rollback)
+   4. Ignorance   — Ostrich algorithm (used by most OS — rare deadlocks just reboot)
+
+Q: What is livelock?
+A: Processes keep changing state in response to each other but make no progress.
+   Like two people in a hallway stepping aside for each other indefinitely.
+
+Q: What is a monitor?
+A: A high-level synchronization construct that bundles shared data and the
+   procedures that operate on it, with automatic mutual exclusion.
+   Java's synchronized keyword implements monitor-like behavior.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. MEMORY MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is virtual memory?
+A: Technique that gives each process the illusion of having its own large
+   contiguous memory space, even if physical RAM is limited. Pages not
+   currently needed are stored on disk (swap space).
+
+Q: What is paging?
+A: Memory is divided into fixed-size blocks:
+   - Physical memory → frames
+   - Logical memory   → pages
+   A page table maps logical pages to physical frames. Eliminates external
+   fragmentation but causes internal fragmentation.
+
+Q: What is segmentation?
+A: Memory divided into variable-size segments (code, stack, heap, data).
+   More logical than paging but causes external fragmentation.
+
+Q: What is a page fault?
+A: When a process accesses a page not currently in physical memory.
+   OS loads the page from disk into a free frame (page fault handler).
+   Excessive page faults = thrashing.
+
+Q: What is thrashing?
+A: When a process spends more time swapping pages in/out than executing.
+   Caused by too many processes competing for too little memory.
+
+Q: What are page replacement algorithms?
+A: When memory is full and a new page must be loaded, one must be evicted:
+   1. FIFO  — evict the oldest page (simple, but Belady's anomaly)
+   2. LRU   — evict the least recently used page (good, expensive to implement)
+   3. OPT   — evict page not used longest in future (optimal but theoretical)
+   4. Clock — approximation of LRU using a reference bit (used in practice)
+
+Q: What is internal vs external fragmentation?
+A: Internal: wasted space INSIDE an allocated block (paging causes this)
+   External: free memory exists but is scattered in small non-contiguous chunks
+             (segmentation/variable-size allocation causes this)
+
+Q: What is the difference between stack and heap memory?
+A:
+   Stack                            Heap
+   ─────────────────────────────    ─────────────────────────────
+   Auto managed (LIFO)              Manually managed (new/delete)
+   Fast allocation                  Slower allocation
+   Limited size                     Large, limited by RAM
+   Local variables, function calls  Dynamic objects
+   Freed on function return         Freed explicitly
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. FILE SYSTEMS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is an inode?
+A: A data structure storing metadata about a file (size, permissions, timestamps,
+   disk block locations) but NOT the filename. The directory maps filenames to
+   inodes.
+
+Q: What are file allocation methods?
+A: 1. Contiguous — file stored in consecutive blocks. Fast but fragmentation.
+   2. Linked     — each block points to next. No fragmentation, slow random access.
+   3. Indexed    — index block holds pointers to all file blocks. Flexible.
+
+Q: What is the difference between hard link and soft link?
+A: Hard link: another directory entry pointing to the same inode. File persists
+              until all hard links are deleted.
+   Soft link: a pointer (shortcut) to a filename. Breaks if original is deleted.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. INTER-PROCESS COMMUNICATION (IPC)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What are IPC mechanisms?
+A: 1. Pipes         — unidirectional data channel between related processes
+   2. Message Queue — processes send/receive messages via OS-managed queue
+   3. Shared Memory — fastest IPC; processes map same memory region (needs sync)
+   4. Sockets       — communication over network or locally
+   5. Signals       — notify a process of an event (e.g. SIGKILL, SIGTERM)
+   6. Semaphores    — synchronize access to shared resources
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. OPERATING SYSTEM CONCEPTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is the kernel?
+A: The core of the OS that manages hardware resources (CPU, memory, I/O).
+   Runs in privileged (kernel) mode. User programs run in user mode and
+   request services via system calls.
+
+Q: What is a system call?
+A: Interface between user programs and the OS kernel. Examples:
+   fork(), exec(), read(), write(), open(), close(), exit()
+
+Q: What is the difference between kernel mode and user mode?
+A: Kernel mode: full access to hardware, can execute any instruction.
+   User mode:   restricted access, cannot directly access hardware.
+   A program switches to kernel mode via a system call.
+
+Q: What is a bootloader?
+A: First program that runs when a computer starts. Loads the OS kernel from
+   disk into memory and transfers control to it. Example: GRUB on Linux.
+
+Q: What is a hypervisor?
+A: Software that creates and manages virtual machines (VMs). Allows multiple
+   OS instances to run on one physical machine.
+   Type 1 (bare metal): runs directly on hardware (VMware ESXi, Hyper-V)
+   Type 2 (hosted):     runs on top of an OS (VirtualBox, VMware Workstation)
+
+Q: What is BIOS vs UEFI?
+A: BIOS: older firmware, 16-bit, MBR partitioning, max 2TB disk.
+   UEFI: modern replacement, 64-bit, GPT partitioning, faster boot, secure boot.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. NETWORKING BASICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is the OSI model?
+A: 7-layer model for network communication:
+   7. Application  — HTTP, FTP, DNS, SMTP
+   6. Presentation — encryption, compression
+   5. Session      — session management
+   4. Transport    — TCP, UDP (end-to-end delivery)
+   3. Network      — IP (routing between networks)
+   2. Data Link    — MAC address, Ethernet (node-to-node)
+   1. Physical     — cables, signals, bits
+
+Q: TCP vs UDP?
+A:
+   TCP                              UDP
+   ─────────────────────────────    ─────────────────────────────
+   Connection-oriented              Connectionless
+   Reliable, ordered delivery       No guarantee of delivery/order
+   Error checking + retransmission  Minimal error checking
+   Slower (handshake overhead)      Faster
+   HTTP, FTP, email                 Video streaming, DNS, gaming
+
+Q: What is the TCP 3-way handshake?
+A: SYN → SYN-ACK → ACK
+   Client sends SYN, server responds SYN-ACK, client confirms with ACK.
+   Connection established. Used before any data transfer.
+
+Q: What is a socket?
+A: An endpoint for communication identified by IP address + port number.
+   A TCP socket = (source IP, source port, dest IP, dest port).
+
+Q: What is DNS?
+A: Domain Name System — translates human-readable hostnames (google.com)
+   to IP addresses (142.250.80.46). Like a phone book for the internet.
+
+Q: What is HTTP vs HTTPS?
+A: HTTP:  data sent in plain text, port 80
+   HTTPS: data encrypted with TLS/SSL, port 443. Secure.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. DATA STRUCTURES & ALGORITHMS (THEORY)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is time complexity? What is Big O?
+A: Big O describes how runtime grows as input size n grows.
+   O(1)       — constant   (array access)
+   O(log n)   — logarithmic (binary search)
+   O(n)       — linear     (linear search)
+   O(n log n) — linearithmic (merge sort, heap sort)
+   O(n²)      — quadratic  (bubble sort, selection sort)
+   O(2^n)     — exponential (recursive fibonacci)
+
+Q: What is the difference between BFS and DFS?
+A: BFS (Breadth First Search): explores level by level using a queue.
+   Finds shortest path in unweighted graphs.
+   DFS (Depth First Search): explores as deep as possible using a stack/recursion.
+   Good for cycle detection, topological sort, path finding.
+
+Q: What is a hash table? How does it handle collisions?
+A: A data structure mapping keys to values using a hash function.
+   Average O(1) for insert/search/delete.
+   Collision handling:
+   1. Chaining    — each bucket holds a linked list of entries
+   2. Open addressing — probe for next empty slot (linear/quadratic probing)
+
+Q: What is a binary search tree (BST)?
+A: A tree where left child < parent < right child.
+   Search, insert, delete: O(log n) average, O(n) worst (unbalanced).
+   Balanced BSTs (AVL, Red-Black): guarantee O(log n) always.
+
+Q: What is dynamic programming?
+A: Breaking a problem into overlapping subproblems, solving each once,
+   and storing results (memoization/tabulation) to avoid recomputation.
+   Examples: Fibonacci, Knapsack, Longest Common Subsequence.
+
+Q: What is the difference between greedy and dynamic programming?
+A: Greedy: makes the locally optimal choice at each step, never reconsiders.
+           Fast but doesn't always give globally optimal result.
+   DP:     considers all possibilities by solving subproblems — always optimal
+           but slower.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. C++ SPECIFIC
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What is a pointer vs a reference?
+A: Pointer: stores memory address, can be null, can be reassigned, needs *.
+   Reference: alias for a variable, cannot be null, cannot be reassigned.
+
+Q: What is RAII?
+A: Resource Acquisition Is Initialization. Resources (memory, files, locks)
+   are tied to object lifetime — acquired in constructor, released in destructor.
+   Prevents leaks even when exceptions occur. smart pointers use RAII.
+
+Q: What is a virtual function?
+A: A function marked virtual in base class allows derived class to override it.
+   Resolved at runtime via vtable (dynamic dispatch / polymorphism).
+
+Q: What is a vtable?
+A: A table of function pointers maintained per class with virtual functions.
+   Each object has a vptr pointing to its class's vtable. Used for runtime
+   polymorphism.
+
+Q: What is a memory leak?
+A: When heap memory is allocated (new) but never freed (delete). The memory
+   remains occupied for the program's lifetime. Use smart pointers to avoid.
+
+Q: What is a smart pointer?
+A: RAII wrappers around raw pointers that auto-delete memory:
+   unique_ptr — sole ownership, not copyable
+   shared_ptr — shared ownership, reference counted
+   weak_ptr   — non-owning reference to shared_ptr (breaks cycles)
+
+Q: What is the difference between new/delete and malloc/free?
+A: new/delete:   call constructors/destructors, throw exception on failure
+   malloc/free:  C-style, no constructors, return nullptr on failure
+
+Q: What are the 4 OOP pillars?
+A: 1. Encapsulation  — hide internal data, expose via public interface
+   2. Abstraction    — hide complexity, show only essential features
+   3. Inheritance    — derive new class from existing one (IS-A relationship)
+   4. Polymorphism   — same interface, different behavior (overriding/overloading)
+
+Q: What is the difference between overloading and overriding?
+A: Overloading: same function name, different parameters, resolved at compile time.
+   Overriding:  derived class redefines base class virtual function, resolved at
+                runtime.
+
+Q: What is a destructor? When should it be virtual?
+A: A destructor cleans up resources when an object is destroyed.
+   Make it virtual in a base class whenever you have virtual functions —
+   otherwise deleting a derived object via a base pointer only calls the
+   base destructor, leaking derived resources.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. DATABASE CONCEPTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: What are ACID properties?
+A: Atomicity    — transaction is all-or-nothing
+   Consistency  — DB goes from one valid state to another
+   Isolation    — concurrent transactions don't interfere
+   Durability   — committed transactions survive crashes
+
+Q: What is an index in a database?
+A: A data structure (usually B-tree) that speeds up data retrieval at the
+   cost of extra storage and slower writes.
+
+Q: What is normalization?
+A: Organizing database to reduce redundancy:
+   1NF: atomic values, no repeating groups
+   2NF: 1NF + no partial dependencies
+   3NF: 2NF + no transitive dependencies
+
+Q: What is the difference between SQL and NoSQL?
+A: SQL:   relational, structured schema, ACID, good for complex queries
+   NoSQL: document/key-value/graph, flexible schema, scales horizontally,
+          eventual consistency (used in distributed systems)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. CONCURRENCY & PARALLELISM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: Concurrency vs Parallelism?
+A: Concurrency:  multiple tasks making progress, possibly interleaved on one CPU
+   Parallelism:  multiple tasks literally executing at the same time on multiple CPUs
+
+Q: What is a thread pool?
+A: A collection of pre-created threads ready to execute tasks. Avoids overhead
+   of creating/destroying threads for every task. Tasks submitted to a queue,
+   threads pick them up.
+
+Q: What is a spinlock?
+A: A lock where the thread continuously loops (spins) checking if the lock is
+   available. Wastes CPU but avoids context switch overhead. Good only for
+   very short critical sections.
+
+Q: What is the producer-consumer problem?
+A: Classic synchronization problem: producers add items to a bounded buffer,
+   consumers remove them. Need to prevent overflow (buffer full) and underflow
+   (buffer empty). Solved with semaphores or condition variables.
+
+Q: What is the readers-writers problem?
+A: Multiple readers can read simultaneously, but a writer needs exclusive access.
+   Challenge: balance between reader throughput and writer starvation.
+
+═══════════════════════════════════════════════════════════════════════════════

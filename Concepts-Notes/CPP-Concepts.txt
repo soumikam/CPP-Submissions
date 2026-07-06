@@ -1,0 +1,559 @@
+═══════════════════════════════════════════════════════════════════════════════
+                         C++ COMPLETE CONCEPTS REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. BASICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+DATA TYPES
+──────────
+int       — 4 bytes, -2^31 to 2^31-1
+long long — 8 bytes, -2^63 to 2^63-1
+float     — 4 bytes, ~7 decimal digits precision
+double    — 8 bytes, ~15 decimal digits precision
+char      — 1 byte, single character
+bool      — 1 byte, true/false
+void      — no value
+
+TYPE MODIFIERS
+──────────────
+signed / unsigned    — int, char
+short / long         — int
+const                — value cannot change after initialization
+static               — persists across function calls / class-level
+
+OPERATORS
+─────────
+Arithmetic:   + - * / %
+Relational:   == != < > <= >=
+Logical:      && || !
+Bitwise:      & | ^ ~ << >>
+Assignment:   = += -= *= /= %= &= |= ^= <<= >>=
+Ternary:      condition ? val_if_true : val_if_false
+Comma:        evaluates both, returns right operand
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. POINTERS & REFERENCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+POINTERS
+────────
+int* p = &x;      // p holds address of x
+*p                // dereference — get value at address
+p->member         // access member via pointer (same as (*p).member)
+int** pp = &p;    // pointer to pointer
+nullptr           // null pointer (C++11, prefer over NULL)
+
+int arr[5];
+int* p = arr;     // array name decays to pointer to first element
+p[2] == *(p+2)    // pointer arithmetic
+
+REFERENCES
+──────────
+int& ref = x;     // ref is alias for x
+ref = 10;         // changes x directly
+                  // must be initialized, cannot be null, cannot be reassigned
+
+CONST POINTER COMBINATIONS
+───────────────────────────
+const int* p      // pointer to const int — can't change *p, can change p
+int* const p      // const pointer to int — can change *p, can't change p
+const int* const p // both const — can't change either
+
+PASS BY VALUE vs REFERENCE vs POINTER
+──────────────────────────────────────
+void f(int x)     // copy — changes don't affect caller
+void f(int& x)    // reference — changes affect caller, can't be null
+void f(int* x)    // pointer — changes affect caller, can be null
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. MEMORY MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+STACK vs HEAP
+─────────────
+Stack: auto managed, LIFO, fast, limited size, local variables
+Heap:  manual management, dynamic size, slower, new/delete
+
+DYNAMIC ALLOCATION
+──────────────────
+int* p = new int(5);        // allocate single int
+int* arr = new int[10];     // allocate array
+delete p;                   // free single
+delete[] arr;               // free array — must match new[]
+
+MEMORY ISSUES
+─────────────
+Memory leak:        new without delete
+Dangling pointer:   pointer to freed memory
+Double free:        delete called twice on same pointer
+Buffer overflow:    writing past array bounds
+
+SMART POINTERS (C++11) — prefer over raw pointers
+──────────────────────────────────────────────────
+unique_ptr<int> p = make_unique<int>(5);  // sole owner, auto-deleted
+shared_ptr<int> p = make_shared<int>(5);  // ref-counted, deleted when count=0
+weak_ptr<int> w = p;                      // non-owning, breaks circular refs
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. FUNCTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FUNCTION BASICS
+───────────────
+returnType name(params);     // declaration (prototype)
+returnType name(params) { }  // definition
+inline returnType f() { }    // hint to compiler to expand inline (avoids call overhead)
+
+DEFAULT ARGUMENTS
+─────────────────
+void f(int x, int y = 10);   // y defaults to 10 if not provided
+// default args must be at the END of parameter list
+
+FUNCTION OVERLOADING
+────────────────────
+int add(int a, int b);
+double add(double a, double b);   // same name, different params — compile-time resolution
+
+FUNCTION POINTERS
+─────────────────
+int (*fp)(int, int) = &add;   // pointer to function
+fp(3, 4);                     // call via pointer
+
+LAMBDA FUNCTIONS (C++11)
+────────────────────────
+auto f = [](int x) { return x * 2; };          // basic lambda
+auto f = [x](int y) { return x + y; };         // capture x by value
+auto f = [&x](int y) { x++; return x + y; };   // capture x by reference
+auto f = [=]() { ... };                         // capture all by value
+auto f = [&]() { ... };                         // capture all by reference
+
+RECURSION
+─────────
+Must have a base case (termination) + recursive case (moves toward base)
+Each call adds a stack frame — risk of stack overflow for deep recursion
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. OOP — CLASSES & OBJECTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CLASS BASICS
+────────────
+class MyClass {
+private:                      // ENCAPSULATION — hidden from outside
+    int x;
+public:
+    MyClass(int val) : x(val) {}   // constructor with initializer list
+    ~MyClass() {}                  // destructor
+    int getX() const { return x; } // const member — doesn't modify object
+    void setX(int val) { x = val; }
+};
+
+ACCESS SPECIFIERS
+─────────────────
+private:    accessible only within the class
+protected:  accessible within class and derived classes
+public:     accessible everywhere
+
+CONSTRUCTORS
+────────────
+Default constructor:    MyClass() {}
+Parameterized:          MyClass(int x) : x(x) {}
+Copy constructor:       MyClass(const MyClass& other) : x(other.x) {}
+Move constructor:       MyClass(MyClass&& other) : x(other.x) { other.x = 0; }
+Destructor:             ~MyClass() {}
+
+STATIC MEMBERS
+──────────────
+static int count;              // shared across all objects, not per-instance
+static void printCount() {}    // can be called without an object: MyClass::printCount()
+
+FRIEND FUNCTIONS
+────────────────
+friend void show(MyClass& obj); // non-member that can access private members
+
+THIS POINTER
+────────────
+this          // pointer to current object inside member function
+*this         // the object itself
+return *this; // enables method chaining
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. INHERITANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+TYPES
+─────
+class Derived : public Base {}     // public inheritance (IS-A)
+class Derived : protected Base {}  // protected inheritance
+class Derived : private Base {}    // private inheritance (HAS-A)
+
+ACCESS IN INHERITANCE
+─────────────────────
+                public Base   protected Base   private Base
+public:         public        protected        private
+protected:      protected     protected        private
+private:        hidden        hidden           hidden
+
+CONSTRUCTOR CHAINING
+────────────────────
+Derived(int x) : Base(x) {}   // call base constructor explicitly
+
+MULTIPLE INHERITANCE
+────────────────────
+class C : public A, public B {}   // C inherits from both A and B
+// Diamond problem: use virtual inheritance
+class B : virtual public A {}
+class C : virtual public A {}
+class D : public B, public C {}   // only one copy of A
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. POLYMORPHISM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+COMPILE-TIME (STATIC) POLYMORPHISM
+────────────────────────────────────
+Function overloading:   same name, different params, resolved at compile time
+Operator overloading:   define operators for custom types
+Templates:              generic code resolved at compile time
+
+RUNTIME (DYNAMIC) POLYMORPHISM
+────────────────────────────────
+virtual void f() {}        // marks function for runtime resolution
+void f() override {}       // derived class overrides (C++11, safer than just redefining)
+void f() final {}          // cannot be overridden further
+virtual void f() = 0;      // pure virtual — makes class abstract (cannot instantiate)
+
+VTABLE
+──────
+Each class with virtual functions has a vtable (table of function pointers).
+Each object has a vptr pointing to its class vtable.
+Runtime: vptr → vtable → correct function called.
+
+ABSTRACT CLASS
+──────────────
+Has at least one pure virtual function.
+Cannot be instantiated directly.
+Derived class must implement all pure virtual functions to be concrete.
+
+OPERATOR OVERLOADING
+────────────────────
+MyClass operator+(const MyClass& other) { ... }
+friend ostream& operator<<(ostream& os, const MyClass& obj) { ... }
+// Cannot overload: :: . .* ?: sizeof typeid
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. TEMPLATES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+FUNCTION TEMPLATES
+──────────────────
+template <typename T>
+T add(T a, T b) { return a + b; }
+add<int>(3, 4);      // explicit
+add(3.0, 4.0);       // deduced
+
+CLASS TEMPLATES
+───────────────
+template <typename T>
+class Stack {
+    vector<T> data;
+public:
+    void push(T val) { data.push_back(val); }
+    T top() { return data.back(); }
+};
+Stack<int> s;
+
+TEMPLATE SPECIALIZATION
+────────────────────────
+template <>
+void print<char>(char c) { cout << "Char: " << c; }   // specific behavior for char
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. STL — STANDARD TEMPLATE LIBRARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CONTAINERS
+──────────
+vector<T>              dynamic array        O(1) access, O(1) amortized push_back
+list<T>                doubly linked list   O(1) insert/delete, O(n) access
+deque<T>               double-ended queue   O(1) front/back push, O(1) access
+stack<T>               LIFO adapter         push, pop, top
+queue<T>               FIFO adapter         push, pop, front, back
+priority_queue<T>      max heap by default  push, pop, top
+set<T>                 sorted unique keys   O(log n) insert/find
+multiset<T>            sorted, allows dups  O(log n)
+map<K,V>               sorted key-value     O(log n) insert/find
+unordered_map<K,V>     hash map             O(1) avg insert/find
+unordered_set<T>       hash set             O(1) avg insert/find
+pair<T1,T2>            two values           .first, .second
+tuple<T1,T2,T3>        N values             get<0>(t), get<1>(t)
+
+ITERATORS
+─────────
+container.begin()      iterator to first element
+container.end()        iterator to one past last
+container.rbegin()     reverse iterator (last element)
+container.rend()       reverse iterator (before first)
+auto it = v.begin();
+*it                    dereference
+++it / --it            advance
+
+ALGORITHMS (<algorithm>)
+──────────────────────────
+sort(begin, end)                      sort ascending
+sort(begin, end, comparator)          custom sort
+reverse(begin, end)                   reverse in place
+find(begin, end, val)                 returns iterator to first match
+count(begin, end, val)                count occurrences
+max_element(begin, end)               iterator to max
+min_element(begin, end)               iterator to min
+accumulate(begin, end, init)          sum (needs <numeric>)
+binary_search(begin, end, val)        true/false (sorted range)
+lower_bound(begin, end, val)          iterator to first >= val
+upper_bound(begin, end, val)          iterator to first > val
+unique(begin, end)                    remove consecutive duplicates
+fill(begin, end, val)                 fill with value
+copy(src_begin, src_end, dst_begin)   copy range
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. EXCEPTION HANDLING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+try {
+    throw runtime_error("something went wrong");
+}
+catch (const runtime_error& e) {
+    cout << e.what();
+}
+catch (...) {          // catch all exceptions
+    cout << "Unknown error";
+}
+finally { }            // C++ has no finally — use RAII instead
+
+STANDARD EXCEPTIONS
+────────────────────
+exception            base class
+runtime_error        logical errors at runtime
+out_of_range         index out of bounds
+invalid_argument     bad argument
+bad_alloc            new failed (out of memory)
+overflow_error       arithmetic overflow
+
+noexcept             marks function as non-throwing (optimization hint)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. C++11/14/17/20 MODERN FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+C++11
+─────
+auto             — type deduction:         auto x = 3.14;
+decltype         — type of expression:     decltype(x) y = x;
+nullptr          — null pointer constant
+Range-based for  — for(auto& x : vec) {}
+Lambda           — [](int x) { return x; }
+Smart pointers   — unique_ptr, shared_ptr, weak_ptr
+move semantics   — std::move(), rvalue references (T&&)
+initializer list — vector<int> v = {1,2,3};
+constexpr        — compile-time evaluation
+static_assert    — compile-time assertion
+override/final   — safer virtual overriding
+enum class       — scoped enums (no implicit int conversion)
+std::thread      — multithreading support
+
+C++14
+─────
+Generic lambdas  — [](auto x) { return x; }
+Binary literals  — 0b1010
+Digit separators — 1'000'000
+
+C++17
+─────
+Structured bindings   — auto& [key, val] : map
+if constexpr          — compile-time if
+std::optional<T>      — may or may not have a value
+std::variant<T1,T2>   — type-safe union
+std::filesystem       — file system operations
+fold expressions      — for variadic templates
+
+C++20
+─────
+Concepts          — constrain template types
+Ranges            — composable algorithms
+Coroutines        — co_await, co_yield
+Modules           — replace #include
+std::span         — non-owning view of contiguous data
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. MOVE SEMANTICS & RVALUE REFERENCES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+lvalue  — has a name, addressable (variables)
+rvalue  — temporary, no name (literals, expressions)
+
+T&&     — rvalue reference, binds to temporaries
+std::move(x)    — casts x to rvalue (enables move instead of copy)
+
+Move constructor:   MyClass(MyClass&& other)       — steal resources from other
+Move assignment:    MyClass& operator=(MyClass&&)   — steal resources
+
+WHY: copying a large object is expensive. Moving transfers ownership of
+     internal resources (e.g. heap buffer) without copying data — O(1).
+
+Rule of Five: if you define any of these, define all five:
+    destructor, copy constructor, copy assignment,
+    move constructor, move assignment
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13. CASTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+static_cast<T>(x)       — compile-time cast, safe conversions (int to double)
+dynamic_cast<T*>(x)     — runtime safe downcast for polymorphic types, returns nullptr on fail
+const_cast<T>(x)        — add/remove const
+reinterpret_cast<T>(x)  — low-level bit reinterpretation (dangerous)
+(T)x                    — C-style cast (avoid — no safety checks)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+14. PREPROCESSOR & COMPILATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+#include <file>         — include system header
+#include "file"         — include local file
+#define PI 3.14         — macro constant
+#define MAX(a,b) ((a)>(b)?(a):(b))  — macro function (prefer inline/constexpr)
+#ifdef / #ifndef        — conditional compilation
+#pragma once            — include guard (prevent double inclusion)
+
+COMPILATION STAGES
+──────────────────
+1. Preprocessing  — handle #include, #define, macros
+2. Compilation    — translate to assembly (.s)
+3. Assembly       — translate to object code (.o)
+4. Linking        — combine .o files + libraries into executable
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+15. MULTITHREADING (C++11)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+#include <thread>
+#include <mutex>
+
+thread t(func, args);   // create thread running func
+t.join();               // wait for thread to finish
+t.detach();             // let thread run independently
+
+mutex m;
+m.lock();
+// critical section
+m.unlock();
+
+lock_guard<mutex> lg(m);   // RAII lock — auto unlocks on scope exit
+unique_lock<mutex> ul(m);  // flexible lock — can unlock manually
+
+atomic<int> counter = 0;   // thread-safe integer operations without mutex
+counter++;                 // atomic increment
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+16. STRINGS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+string s = "hello";
+s.length() / s.size()    — length
+s[i]                     — access char at index
+s.at(i)                  — access with bounds check
+s.substr(pos, len)        — substring
+s.find("lo")             — index of first match (string::npos if not found)
+s.replace(pos, len, str) — replace portion
+s.append(str) / s += str — concatenate
+s.empty()                — true if empty
+s.clear()                — make empty
+s.compare(t)             — 0 if equal
+stoi(s)                  — string to int
+stof(s)                  — string to float
+to_string(n)             — int/float to string
+getline(cin, s)          — read full line including spaces
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+17. FILE I/O
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+#include <fstream>
+
+ofstream out("file.txt");        // write
+out << "Hello" << endl;
+out.close();
+
+ifstream in("file.txt");         // read
+string line;
+while(getline(in, line))
+    cout << line << endl;
+in.close();
+
+fstream f("file.txt", ios::in | ios::out);   // read + write
+
+MODES
+─────
+ios::in      read
+ios::out     write (overwrites)
+ios::app     append
+ios::binary  binary mode
+ios::trunc   truncate file on open
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+18. NAMESPACES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+namespace MyNS {
+    int x = 5;
+    void f() {}
+}
+
+MyNS::x            — access member
+using MyNS::x;     — bring x into scope
+using namespace MyNS;  // bring everything (avoid in headers — pollutes global scope)
+
+Nested namespaces:
+namespace A::B::C { }   // C++17 shorthand
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+19. TYPE DEDUCTION & UTILITIES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+auto x = 5;                     // deduced as int
+auto& x = someVector[0];        // reference to element
+const auto& x = someMap["key"]; // const reference
+
+decltype(expr)                  // type of expr without evaluating
+
+sizeof(type)                    // size in bytes at compile time
+typeid(x).name()                // runtime type name (RTTI)
+
+std::swap(a, b)                 // swap two values
+std::min(a, b)                  // smaller of two
+std::max(a, b)                  // larger of two
+std::abs(x)                     // absolute value
+std::clamp(x, lo, hi)           // clamp x between lo and hi (C++17)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+20. COMMON INTERVIEW TRAPS & TIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- int overflow: use long long for large numbers
+- Uninitialized variables: always initialize
+- Off-by-one: check loop bounds carefully (< vs <=)
+- Integer division: 5/2 = 2, not 2.5. Cast to double first.
+- Comparing floats: never use == with float/double, use abs(a-b) < epsilon
+- Array out of bounds: undefined behavior, no exception thrown
+- Virtual destructor: always add in base class if using polymorphism
+- Slicing: assigning derived to base by value loses derived data
+- = vs ==: assignment vs comparison (= in if condition is a common bug)
+- Prefer nullptr over NULL (NULL is just 0 in C++)
+- Prefer range-based for over index loop when index not needed
+- Prefer const& for function params of large objects
+- Prefer stack allocation over heap when size is known at compile time
+- Always delete[] for arrays, delete for single objects
+
+═══════════════════════════════════════════════════════════════════════════════

@@ -1,0 +1,733 @@
+═══════════════════════════════════════════════════════════════════════════════
+                       C# & UNITY COMPLETE CONCEPTS REFERENCE
+═══════════════════════════════════════════════════════════════════════════════
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 1 — C# LANGUAGE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+1. DATA TYPES & VARIABLES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+VALUE TYPES (stored on stack)
+──────────────────────────────
+int       — 4 bytes
+long      — 8 bytes
+float     — 4 bytes (suffix f: 3.14f)
+double    — 8 bytes
+decimal   — 16 bytes, high precision (finance)
+bool      — true / false
+char      — single Unicode character 'A'
+byte      — 0 to 255
+struct    — value type, copied on assignment
+enum      — named integer constants
+
+REFERENCE TYPES (stored on heap)
+──────────────────────────────────
+string    — immutable sequence of chars
+object    — base of all types
+class     — reference type
+array     — int[] arr = new int[5]
+interface — contract
+
+TYPE CONVERSIONS
+────────────────
+int x = (int)3.9;          // explicit cast — truncates to 3
+double d = 5;              // implicit widening
+int.Parse("42")            // string to int (throws on fail)
+int.TryParse("42", out n)  // safe parse — returns bool
+Convert.ToInt32(x)         // flexible conversion
+x.ToString()               // any type to string
+
+VAR & NULLABLE
+──────────────
+var x = 10;          // type inferred at compile time (not dynamic)
+int? x = null;       // nullable value type
+x ?? 0               // null coalescing — returns 0 if x is null
+x?.Length            // null conditional — returns null if x is null
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+2. OOP IN C#
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+CLASS
+─────
+public class Animal {
+    // fields
+    private string name;
+
+    // properties (preferred over public fields)
+    public string Name {
+        get { return name; }
+        set { name = value; }
+    }
+    public int Age { get; set; }          // auto property
+    public string Species { get; private set; }  // read-only outside
+
+    // constructor
+    public Animal(string name, int age) {
+        this.name = name;
+        Age = age;
+    }
+
+    // method
+    public virtual void Speak() {
+        Console.WriteLine($"{name} makes a sound.");
+    }
+
+    // static
+    public static int Count = 0;
+}
+
+ACCESS MODIFIERS
+────────────────
+public      — accessible everywhere
+private     — only within the class
+protected   — class + derived classes
+internal    — same assembly (project)
+protected internal — same assembly OR derived class
+private protected  — same assembly AND derived class
+
+INHERITANCE
+───────────
+public class Dog : Animal {
+    public Dog(string name) : base(name, 0) {}
+
+    public override void Speak() {         // override
+        Console.WriteLine("Woof!");
+    }
+}
+
+sealed class FinalClass : Animal { }     // cannot be inherited further
+
+INTERFACES
+──────────
+public interface IMovable {
+    void Move();                           // no implementation
+    int Speed { get; }                     // property contract
+}
+
+public interface ISwimmable {
+    void Swim();
+}
+
+public class Duck : Animal, IMovable, ISwimmable {  // multiple interfaces
+    public void Move() { }
+    public void Swim() { }
+    public int Speed => 5;                 // expression body property
+}
+
+ABSTRACT CLASS vs INTERFACE
+────────────────────────────
+Abstract class:
+  - Can have implementation + abstract methods
+  - Single inheritance only
+  - Can have fields, constructors
+  - Use when sharing code between related classes
+
+Interface:
+  - Only method/property contracts (C#8+ can have defaults)
+  - Multiple interfaces allowed
+  - No fields, no constructors
+  - Use to define capabilities across unrelated classes
+
+STRUCTS
+───────
+struct Point {
+    public float x, y;
+    public Point(float x, float y) { this.x = x; this.y = y; }
+}
+Point p = new Point(1, 2);  // value type — copied, not referenced
+
+ENUMS
+─────
+enum Direction { North, South, East, West }
+enum Flags { None=0, Fire=1, Water=2, Earth=4 }  // bit flags
+Direction d = Direction.North;
+int val = (int)Direction.South;   // cast to int
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+3. C# SPECIFIC FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROPERTIES
+──────────
+public int Health {
+    get => health;
+    set => health = Mathf.Clamp(value, 0, 100);  // validation in setter
+}
+
+DELEGATES & EVENTS
+──────────────────
+delegate void OnDeath();             // function pointer type
+OnDeath deathCallback;
+deathCallback += PlayDeathSound;     // subscribe
+deathCallback += SpawnParticles;     // multi-cast
+deathCallback?.Invoke();             // call all subscribers
+
+// Events — encapsulated delegate, only owner can Invoke
+public event Action OnJump;          // Action = void delegate
+public event Action<int> OnDamage;   // Action<T> = delegate with param
+public event Func<bool> CanAttack;   // Func<T> = delegate with return
+
+OnJump += HandleJump;   // subscribe
+OnJump -= HandleJump;   // unsubscribe
+
+LAMBDA EXPRESSIONS
+──────────────────
+Func<int, int> square = x => x * x;
+Action<string> print = msg => Console.WriteLine(msg);
+Func<int,int,int> add = (a, b) => a + b;
+
+list.Sort((a, b) => a.CompareTo(b));
+list.Where(x => x > 5).Select(x => x * 2);
+
+GENERICS
+────────
+public class Stack<T> {
+    List<T> items = new List<T>();
+    public void Push(T item) { items.Add(item); }
+    public T Pop() { ... }
+}
+
+void Swap<T>(ref T a, ref T b) { T temp = a; a = b; b = temp; }
+
+// Constraints
+void Print<T>(T x) where T : class { }       // T must be reference type
+void Print<T>(T x) where T : new() { }       // T must have default constructor
+void Print<T>(T x) where T : IComparable { } // T must implement IComparable
+
+LINQ (Language Integrated Query)
+────────────────────────────────
+var result = numbers
+    .Where(x => x > 5)           // filter
+    .Select(x => x * 2)          // transform
+    .OrderBy(x => x)             // sort
+    .Take(3)                      // first 3
+    .ToList();                    // execute
+
+var grouped = list.GroupBy(x => x.Category);
+var first = list.FirstOrDefault(x => x.Id == 5);
+int sum = list.Sum(x => x.Value);
+bool any = list.Any(x => x > 10);
+bool all = list.All(x => x > 0);
+
+ASYNC / AWAIT
+─────────────
+public async Task<string> FetchData() {
+    await Task.Delay(1000);           // non-blocking wait
+    return "data";
+}
+
+async void Start() {
+    string result = await FetchData();
+}
+
+Task       — async operation with no return
+Task<T>    — async operation returning T
+async void — fire and forget (avoid except for Unity event functions)
+
+EXTENSION METHODS
+─────────────────
+public static class StringExtensions {
+    public static bool IsEmpty(this string s) => s.Length == 0;
+}
+"hello".IsEmpty();   // called as if it's a string method
+
+PATTERN MATCHING
+────────────────
+if (obj is Dog dog) { dog.Bark(); }    // type pattern
+
+switch (shape) {
+    case Circle c:    return c.Radius;
+    case Rectangle r: return r.Width;
+    default:          return 0;
+}
+
+TUPLES
+──────
+(int x, int y) point = (3, 5);
+Console.WriteLine(point.x);
+
+var (min, max) = GetMinMax(arr);   // deconstruct
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+4. COLLECTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Array:              int[] a = new int[5];         fixed size
+List<T>:            List<int> l = new List<int>(); dynamic array
+Dictionary<K,V>:    Dictionary<string,int> d;     key-value hash map
+HashSet<T>:         HashSet<int> h;               unique elements
+Queue<T>:           Queue<int> q;                 FIFO
+Stack<T>:           Stack<int> s;                 LIFO
+LinkedList<T>:      doubly linked list
+
+List<T> methods:
+  Add, Remove, RemoveAt, Insert, Contains, Count, Clear,
+  Sort, Find, FindAll, IndexOf, ToArray
+
+Dictionary<K,V> methods:
+  Add, Remove, ContainsKey, ContainsValue, TryGetValue,
+  Keys, Values, Count
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+5. EXCEPTION HANDLING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+try {
+    int result = 10 / 0;
+}
+catch (DivideByZeroException e) {
+    Console.WriteLine(e.Message);
+}
+catch (Exception e) {
+    Console.WriteLine(e.StackTrace);
+}
+finally {
+    // always runs — cleanup here
+}
+
+throw new InvalidOperationException("message");
+throw;   // rethrow current exception (preserves stack trace)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART 2 — UNITY ENGINE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+6. UNITY CORE ARCHITECTURE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GAMEOBJECT & COMPONENTS
+────────────────────────
+Everything in Unity is a GameObject.
+Behaviour is added via Components (scripts, colliders, rigidbodies, etc.)
+Component pattern — not inheritance-based like traditional OOP.
+
+MonoBehaviour — base class for all Unity scripts
+Transform     — every GameObject has one. Stores position, rotation, scale.
+
+SCRIPT LIFECYCLE (ORDER OF EXECUTION)
+──────────────────────────────────────
+Awake()          — called once when object is created (even if disabled)
+OnEnable()       — called when object/component is enabled
+Start()          — called once before first frame (only if enabled)
+FixedUpdate()    — called every physics step (default 0.02s, fixed timestep)
+Update()         — called every frame
+LateUpdate()     — called after all Updates (good for cameras)
+OnDisable()      — called when disabled
+OnDestroy()      — called when object is destroyed
+
+AWAKE vs START
+──────────────
+Awake:  use for self-initialization (doesn't depend on other scripts)
+Start:  use for initialization that needs other scripts to be ready first
+        (Awake always runs before Start)
+
+UPDATE vs FIXEDUPDATE vs LATEUPDATE
+─────────────────────────────────────
+Update:       frame-rate dependent. Input, game logic, animations.
+FixedUpdate:  physics. Rigidbody forces, physics checks. Fixed timestep.
+LateUpdate:   after all Updates. Camera follow, final transforms.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+7. TRANSFORM & MOVEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+transform.position              // world position (Vector3)
+transform.localPosition         // position relative to parent
+transform.rotation              // world rotation (Quaternion)
+transform.localScale            // scale
+transform.forward               // forward direction vector
+transform.right                 // right direction vector
+transform.up                    // up direction vector
+
+transform.Translate(Vector3)    // move relative to current position
+transform.Rotate(Vector3)       // rotate
+transform.LookAt(target)        // face a target
+
+// Smooth movement patterns
+transform.position = Vector3.Lerp(a, b, t);          // linear interpolation
+transform.position = Vector3.MoveTowards(pos, target, speed * Time.deltaTime);
+transform.rotation = Quaternion.Slerp(a, b, t);      // smooth rotation
+
+VECTOR3
+───────
+Vector3.zero          (0,0,0)
+Vector3.one           (1,1,1)
+Vector3.up            (0,1,0)
+Vector3.forward       (0,0,1)
+Vector3.Distance(a,b) — distance between two points
+Vector3.Dot(a,b)      — dot product (alignment check)
+Vector3.Cross(a,b)    — perpendicular vector
+v.normalized          — unit vector (magnitude 1)
+v.magnitude           — length of vector
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+8. INPUT SYSTEM
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+LEGACY INPUT
+────────────
+Input.GetKey(KeyCode.Space)          // held down
+Input.GetKeyDown(KeyCode.Space)      // pressed this frame
+Input.GetKeyUp(KeyCode.Space)        // released this frame
+
+Input.GetMouseButton(0)              // left mouse held
+Input.GetMouseButtonDown(0)          // left mouse clicked
+Input.mousePosition                  // mouse screen position
+
+Input.GetAxis("Horizontal")          // -1 to 1 (A/D or left/right arrow)
+Input.GetAxis("Vertical")            // -1 to 1 (W/S or up/down arrow)
+Input.GetAxisRaw("Horizontal")       // -1, 0, or 1 (no smoothing)
+
+NEW INPUT SYSTEM (package)
+──────────────────────────
+using UnityEngine.InputSystem;
+// Actions defined in Input Action Asset, callback-based
+void OnMove(InputAction.CallbackContext ctx) {
+    Vector2 dir = ctx.ReadValue<Vector2>();
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+9. PHYSICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RIGIDBODY
+─────────
+Rigidbody rb = GetComponent<Rigidbody>();
+rb.velocity                          // current velocity
+rb.AddForce(Vector3 * force)         // apply force
+rb.AddForce(dir, ForceMode.Impulse)  // instant impulse (jump)
+rb.MovePosition(pos)                 // kinematic move
+
+ForceMode.Force        — continuous force (mass dependent)
+ForceMode.Acceleration — continuous force (mass independent)
+ForceMode.Impulse      — instant force (mass dependent) — jumping
+ForceMode.VelocityChange — instant force (mass independent)
+
+COLLIDERS & TRIGGERS
+─────────────────────
+// Collision — physical contact (Collider with Rigidbody)
+void OnCollisionEnter(Collision col) { }   // first frame of contact
+void OnCollisionStay(Collision col)  { }   // while in contact
+void OnCollisionExit(Collision col)  { }   // frame contact ends
+
+// Trigger — Is Trigger checked, no physical response
+void OnTriggerEnter(Collider other) { }
+void OnTriggerStay(Collider other)  { }
+void OnTriggerExit(Collider other)  { }
+
+// Check tags
+if (col.gameObject.CompareTag("Enemy")) { }
+
+RAYCASTING
+──────────
+Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+if (Physics.Raycast(ray, out RaycastHit hit, maxDistance)) {
+    Debug.Log(hit.point);           // world position of hit
+    Debug.Log(hit.normal);          // surface normal
+    Debug.Log(hit.collider.name);   // object hit
+}
+
+// Layermask — only hit specific layers
+LayerMask mask = LayerMask.GetMask("Ground", "Enemy");
+Physics.Raycast(origin, dir, out hit, Mathf.Infinity, mask);
+
+// Overlap checks
+Collider[] hits = Physics.OverlapSphere(pos, radius);
+Physics.OverlapBox(center, halfExtents, rotation);
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+10. GAMEOBJECT & COMPONENT ACCESS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+GetComponent<T>()                     // get component on same object
+GetComponentInChildren<T>()           // search in children
+GetComponentInParent<T>()             // search in parents
+GetComponents<T>()                    // all components of type T
+
+gameObject.SetActive(bool)            // enable/disable object
+gameObject.tag                        // tag string
+gameObject.layer                      // layer int
+gameObject.name                       // name string
+
+FINDING OBJECTS
+───────────────
+GameObject.Find("Name")               // slow, avoid in Update
+GameObject.FindWithTag("Player")      // faster
+FindObjectOfType<T>()                 // first object of type (slow)
+FindObjectsOfType<T>()                // all objects of type (slow)
+
+// Better approach: use serialized references
+[SerializeField] private Transform target;   // assign in Inspector
+
+INSTANTIATE & DESTROY
+──────────────────────
+Instantiate(prefab)
+Instantiate(prefab, position, rotation)
+Instantiate(prefab, parent)
+Destroy(gameObject)
+Destroy(gameObject, 2f)              // destroy after 2 seconds
+DontDestroyOnLoad(gameObject)        // persist across scenes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+11. COROUTINES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Coroutines allow pausing execution and resuming later — without threads.
+
+IEnumerator FadeOut() {
+    float alpha = 1f;
+    while (alpha > 0) {
+        alpha -= Time.deltaTime;
+        yield return null;              // wait one frame
+    }
+}
+
+IEnumerator Countdown() {
+    yield return new WaitForSeconds(3f);   // wait 3 seconds
+    StartGame();
+}
+
+IEnumerator WaitForPhysics() {
+    yield return new WaitForFixedUpdate(); // wait for next FixedUpdate
+}
+
+StartCoroutine(FadeOut());
+Coroutine c = StartCoroutine(FadeOut());
+StopCoroutine(c);
+StopAllCoroutines();
+
+yield return null                     — wait one frame
+yield return new WaitForSeconds(t)    — wait t seconds
+yield return new WaitForFixedUpdate() — wait for physics step
+yield return new WaitUntil(() => condition) — wait until true
+yield return new WaitWhile(() => condition) — wait while true
+yield break                           — stop coroutine early
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+12. TIME
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Time.deltaTime          — time since last frame (use for frame-rate independent movement)
+Time.fixedDeltaTime     — fixed physics timestep (default 0.02s)
+Time.time               — total time since game started
+Time.timeScale          — 0 = paused, 0.5 = slow motion, 1 = normal
+Time.unscaledDeltaTime  — deltaTime ignoring timeScale (UI animations)
+
+// Frame-rate independent movement
+transform.position += speed * Time.deltaTime * direction;
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+13. SCENE MANAGEMENT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+using UnityEngine.SceneManagement;
+
+SceneManager.LoadScene("SceneName");
+SceneManager.LoadScene(0);                        // by build index
+SceneManager.LoadSceneAsync("SceneName");         // async load
+SceneManager.GetActiveScene().name                // current scene name
+SceneManager.sceneCount                           // loaded scene count
+
+DontDestroyOnLoad(gameObject);   // keep object across scene loads (singleton)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+14. UI (UGUI)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+using UnityEngine.UI;
+
+Text        — display text (legacy)
+TMP_Text    — TextMeshPro (preferred)
+Image       — display sprite
+Button      — clickable
+Slider      — value 0-1
+Toggle      — checkbox
+InputField  — text input
+Canvas      — root UI container
+
+// Script access
+Text label = GetComponent<Text>();
+label.text = "Score: " + score;
+
+Button btn = GetComponent<Button>();
+btn.onClick.AddListener(OnButtonClick);
+btn.onClick.RemoveAllListeners();
+
+Slider slider = GetComponent<Slider>();
+slider.value = 0.5f;
+slider.onValueChanged.AddListener(val => { health = val; });
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+15. ANIMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Animator anim = GetComponent<Animator>();
+
+anim.SetBool("isRunning", true);
+anim.SetFloat("speed", speed);
+anim.SetInt("health", hp);
+anim.SetTrigger("Jump");
+anim.ResetTrigger("Jump");
+
+anim.Play("AnimationName");
+anim.GetCurrentAnimatorStateInfo(0).IsName("Run")  // check current state
+
+ANIMATOR CONTROLLER
+────────────────────
+States → Transitions → Parameters
+Blend Trees — smooth between animations based on float parameters
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+16. AUDIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+AudioSource audio = GetComponent<AudioSource>();
+audio.Play();
+audio.Stop();
+audio.Pause();
+audio.clip = clip;
+audio.volume = 0.5f;
+audio.loop = true;
+audio.PlayOneShot(clip);               // play without interrupting current
+
+AudioSource.PlayClipAtPoint(clip, pos); // 3D sound at world position
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+17. DESIGN PATTERNS IN UNITY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SINGLETON
+─────────
+public class GameManager : MonoBehaviour {
+    public static GameManager Instance { get; private set; }
+    void Awake() {
+        if (Instance != null) { Destroy(gameObject); return; }
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+}
+// Access: GameManager.Instance.DoSomething();
+
+OBJECT POOLING
+──────────────
+Pre-instantiate objects and reuse them instead of Instantiate/Destroy.
+Critical for bullets, particles, enemies — avoids GC spikes.
+
+Queue<GameObject> pool = new Queue<GameObject>();
+
+GameObject Get() {
+    if (pool.Count > 0) { var obj = pool.Dequeue(); obj.SetActive(true); return obj; }
+    return Instantiate(prefab);
+}
+
+void Return(GameObject obj) {
+    obj.SetActive(false);
+    pool.Enqueue(obj);
+}
+
+OBSERVER (EVENTS)
+─────────────────
+public static event Action<int> OnScoreChanged;
+OnScoreChanged?.Invoke(newScore);          // publisher
+OnScoreChanged += UpdateScoreUI;           // subscriber
+
+STATE MACHINE
+─────────────
+enum State { Idle, Running, Jumping, Attacking }
+State current = State.Idle;
+
+void Update() {
+    switch(current) {
+        case State.Idle:    HandleIdle(); break;
+        case State.Running: HandleRun();  break;
+    }
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+18. INSPECTOR & SERIALIZATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[SerializeField] private int health;     // show private in Inspector
+public int speed;                        // public always shows in Inspector
+[HideInInspector] public int hidden;     // public but hidden from Inspector
+[Header("Combat")]                       // section header in Inspector
+[Tooltip("Player move speed")]           // tooltip on hover
+[Range(0, 100)] public int volume;       // slider in Inspector
+[Space(10)]                              // visual spacing
+
+[System.Serializable]                    // allow custom class to appear in Inspector
+public class Stats {
+    public int hp;
+    public int damage;
+}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+19. SCRIPTABLE OBJECTS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Data containers that live as assets (not attached to GameObjects).
+Great for: item stats, enemy configs, game settings — shared data.
+
+[CreateAssetMenu(fileName = "ItemData", menuName = "Data/Item")]
+public class ItemData : ScriptableObject {
+    public string itemName;
+    public int damage;
+    public Sprite icon;
+}
+
+// Use in MonoBehaviour:
+public ItemData sword;
+Debug.Log(sword.damage);
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+20. PERFORMANCE TIPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+- Cache component references in Awake/Start — don't call GetComponent in Update
+- Use Object Pooling — avoid Instantiate/Destroy per frame
+- Avoid Find() in Update — cache references
+- Use StringBuilder for string concatenation in loops
+- Avoid Linq in hot paths (allocates memory)
+- Use FixedUpdate for physics only
+- Use Time.deltaTime for frame-rate independence
+- Reduce Draw Calls — use batching, atlases
+- Use LOD (Level of Detail) for distant objects
+- Avoid large textures — compress and resize appropriately
+- Profile with Unity Profiler before optimizing
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+21. USEFUL UNITY CLASSES & METHODS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Mathf.Clamp(val, min, max)           — clamp a value
+Mathf.Lerp(a, b, t)                  — interpolate between a and b
+Mathf.Abs(x)                         — absolute value
+Mathf.Round(x)                       — round to nearest int
+Mathf.PI                             — 3.14159...
+Mathf.Infinity                       — float max
+Mathf.Approximately(a, b)            — safe float comparison
+
+Debug.Log("message")                 — print to console
+Debug.LogWarning("warning")          — yellow warning
+Debug.LogError("error")              — red error
+Debug.DrawRay(origin, dir, Color.red)— draw ray in Scene view
+Debug.DrawLine(a, b, Color.green)    — draw line in Scene view
+
+Quaternion.identity                  — no rotation
+Quaternion.Euler(x, y, z)            — from euler angles
+Quaternion.LookRotation(dir)         — face a direction
+Quaternion.AngleAxis(angle, axis)    — rotate around axis
+
+Color.red, Color.green, Color.blue   — built-in colors
+new Color(r, g, b, a)                — custom color (0-1 range)
+
+PlayerPrefs.SetInt("Score", 100)     — save data (not secure, small data only)
+PlayerPrefs.GetInt("Score", 0)       — load data (default 0)
+PlayerPrefs.Save()                   — flush to disk
+
+═══════════════════════════════════════════════════════════════════════════════
